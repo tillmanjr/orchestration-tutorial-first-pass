@@ -77,26 +77,47 @@ asymmetry between the runtimes is one of the findings.
 ## 5. Peak memory
 
 Peak RSS is the only figure comparable across runtimes. Heap statistics are
-not commensurable — Node's heap accounting and Rust's allocator behavior do
+not commensurable — Node's heap accounting and Rust's allocator behaviour do
 not describe the same thing. Sampled by the process itself, reported once per
 run, covering the whole process lifetime.
 
-| Platform | Source | Documented unit |
-|---|---|---|
-| Windows | `GetProcessMemoryInfo` → `PeakWorkingSetSize` | bytes |
-| macOS   | `getrusage(RUSAGE_SELF).ru_maxrss` | **bytes** on Darwin |
-| Linux   | `getrusage(RUSAGE_SELF).ru_maxrss` | **kilobytes** |
+**The unit depends on how you ask, not only on which platform you ask.** This
+is the correction the probe earned, and v1 of this document had it wrong: it
+listed units per platform, which is true of the underlying OS calls and false
+of what a runtime hands you on top of them.
 
-That units discrepancy is real and has bitten everyone once.
+| Access path | Windows | macOS | Linux |
+|---|---|---|---|
+| Node — `process.resourceUsage().maxRSS` | **kilobytes** ✓ | kilobytes (unverified) | **kilobytes** ✓ |
+| Rust / C++ — `getrusage(RUSAGE_SELF).ru_maxrss` | n/a | **bytes** | **kilobytes** |
+| Rust / C++ — `GetProcessMemoryInfo` → `PeakWorkingSetSize` | **bytes** | n/a | n/a |
 
-**Do not trust any of the above, including Node's `process.resourceUsage()`,
-until it is verified empirically on each target platform.** Build
-`packages/harness/rss-probe` first: allocate and touch a known number of
-bytes, read the reported figure, confirm the ratio. A memory comparison built
-on a units assumption is worse than no memory comparison, because it looks
-authoritative. This probe is a Module 01 deliverable, not an afterthought.
+Node normalises through libuv and reports kilobytes everywhere. Native code
+reaching the OS directly does not, and on Darwin the same call that returns
+kilobytes on Linux returns bytes. **A Rust implementation and a Node
+implementation on the same machine therefore read the same quantity through
+sources that disagree by a factor of 1024.** Nothing in either program looks
+wrong.
 
----
+### Verified results
+
+| Platform | Runtime | Unit | Accuracy | Evidence |
+|---|---|---|---|---|
+| linux-x64 | node 22 | kilobytes | 100.3% | sandbox, not a target platform |
+| win32-x64 | node 24.6.0 | kilobytes | 100.2% | `results/instrument/rss-probe.node.win32-x64.json` |
+| darwin-arm64 | node | — | — | pending |
+
+### The rule
+
+**Every runtime ships its own `rss-probe`, and it passes before that runtime's
+first benchmark is believed.** Node's is done. The Rust and C++ probes are
+gates on M6, not afterthoughts — and given the table above, they are the ones
+most likely to find something.
+
+Allocate a known number of bytes, touch every page to force residency, read
+back what you wrote so nothing is elided, and derive the unit from the ratio.
+Never assert a unit from documentation. A memory comparison built on an
+assumed unit is worse than no comparison, because it looks authoritative.
 
 ## 6. Job spec — into the process
 
@@ -204,3 +225,4 @@ costs a weekend.
 | Version | Date | Change |
 |---|---|---|
 | v1 | 2026-08-22 | Initial draft. |
+| v1.1 | 2026-08-22 | §5 corrected: RSS units vary by access path, not by platform alone. Node reports kilobytes everywhere; native code does not. Verified on win32-x64. |

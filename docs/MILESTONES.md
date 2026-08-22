@@ -121,6 +121,16 @@ normalize or may not.
 milestone, before any measurement is taken. A memory comparison built on an
 assumed unit is worse than no comparison, because it looks authoritative.
 
+## E8 · The agent's sandbox is small
+
+The Linux VM the agent runs commands in has ~4 GB of RAM. It can generate and
+verify the `tiny` tier; it cannot touch `mid` or `large`.
+
+**Effect on design.** The agent writes and unit-tests code; the operator's
+machines generate real data and run every benchmark. This is not a limitation
+worth engineering around — it enforces a separation that is correct anyway,
+since a benchmark run on a shared virtualised host is not a measurement.
+
 ---
 
 # Part 2 — Milestones

@@ -1,0 +1,11 @@
+{
+  "name": "orchestration-tutorial-first-pass",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "workspaces": ["packages/*"],
+  "scripts": {
+    "selftest:pcg": "node packages/generator/lib/pcg32.selftest.js",
+    "probe:rss": "node packages/harness/rss-probe/probe.js"
+  }
+}

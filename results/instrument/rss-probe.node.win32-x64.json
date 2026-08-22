@@ -1,0 +1,40 @@
+{
+  "contract": 1,
+  "probe": "rss",
+  "runtime": "node",
+  "runtime_version": "24.6.0",
+  "platform": {
+    "os": "win32",
+    "arch": "x64",
+    "cpu": "13th Gen Intel(R) Core(TM) i9-13900F",
+    "cores_logical": 32,
+    "ram_bytes": 68424019968
+  },
+  "allocated_bytes": 536870912,
+  "pages_touched": 131072,
+  "checksum": 0,
+  "raw": {
+    "before": {
+      "maxRSS": 52328,
+      "rss": 53596160
+    },
+    "after": {
+      "maxRSS": 577884,
+      "rss": 591777792
+    },
+    "delta_maxRSS": 525556,
+    "delta_rss_bytes": 538181632
+  },
+  "residency": {
+    "ratio": 1.0024,
+    "ok": true
+  },
+  "inferred": {
+    "source": "process.resourceUsage().maxRSS",
+    "unit": "kilobytes",
+    "implied_bytes_per_unit": 1021.529,
+    "peak_delta_bytes": 538169344,
+    "accuracy_vs_allocation": 1.0024
+  },
+  "verdict": "PASS: maxRSS is in kilobytes; peak tracked allocation to 100.2%"
+}
