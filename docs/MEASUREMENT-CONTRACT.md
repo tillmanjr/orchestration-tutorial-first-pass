@@ -88,11 +88,12 @@ of what a runtime hands you on top of them.
 
 | Access path | Windows | macOS | Linux |
 |---|---|---|---|
-| Node — `process.resourceUsage().maxRSS` | **kilobytes** ✓ | kilobytes (unverified) | **kilobytes** ✓ |
+| Node — `process.resourceUsage().maxRSS` | **kilobytes** ✓ | **kilobytes** ✓ | **kilobytes** ✓ |
 | Rust / C++ — `getrusage(RUSAGE_SELF).ru_maxrss` | n/a | **bytes** | **kilobytes** |
 | Rust / C++ — `GetProcessMemoryInfo` → `PeakWorkingSetSize` | **bytes** | n/a | n/a |
 
-Node normalises through libuv and reports kilobytes everywhere. Native code
+Node normalises through libuv and reports kilobytes on all three platforms —
+now verified on both targets, not assumed. Native code
 reaching the OS directly does not, and on Darwin the same call that returns
 kilobytes on Linux returns bytes. **A Rust implementation and a Node
 implementation on the same machine therefore read the same quantity through
@@ -105,7 +106,7 @@ wrong.
 |---|---|---|---|---|
 | linux-x64 | node 22 | kilobytes | 100.3% | sandbox, not a target platform |
 | win32-x64 | node 24.6.0 | kilobytes | 100.2% | `results/instrument/rss-probe.node.win32-x64.json` |
-| darwin-arm64 | node | — | — | pending |
+| darwin-arm64 | node 24.15.0 | kilobytes | 101.3% | `results/instrument/rss-probe.node.darwin-arm64.json` |
 
 ### The rule
 
