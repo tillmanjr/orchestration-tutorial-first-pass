@@ -1,0 +1,40 @@
+{
+  "contract": 1,
+  "probe": "rss",
+  "runtime": "node",
+  "runtime_version": "24.15.0",
+  "platform": {
+    "os": "darwin",
+    "arch": "arm64",
+    "cpu": "Apple M4 Pro",
+    "cores_logical": 14,
+    "ram_bytes": 25769803776
+  },
+  "allocated_bytes": 536870912,
+  "pages_touched": 131072,
+  "checksum": 0,
+  "raw": {
+    "before": {
+      "maxRSS": 47040,
+      "rss": 48185344
+    },
+    "after": {
+      "maxRSS": 577968,
+      "rss": 591839232
+    },
+    "delta_maxRSS": 530928,
+    "delta_rss_bytes": 543653888
+  },
+  "residency": {
+    "ratio": 1.0126,
+    "ok": true
+  },
+  "inferred": {
+    "source": "process.resourceUsage().maxRSS",
+    "unit": "kilobytes",
+    "implied_bytes_per_unit": 1011.193,
+    "peak_delta_bytes": 543670272,
+    "accuracy_vs_allocation": 1.0127
+  },
+  "verdict": "PASS: maxRSS is in kilobytes; peak tracked allocation to 101.3%"
+}
