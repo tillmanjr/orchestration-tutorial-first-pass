@@ -1,0 +1,206 @@
+# Measurement Contract — v1 (draft)
+
+**Freezes with the dataset spec at the start of Module 02.**
+
+This is not a study of whether JavaScript should call Rust. It is a study of
+what each language and runtime costs and buys for this shape of work.
+JavaScript is the harness; it orchestrates, collects, and reports. **It does
+not time anything it did not execute.**
+
+---
+
+## 1. Who measures what
+
+Every implementation times **itself**, from inside its own runtime, using its
+own monotonic clock, and reports those figures in its manifest. The harness
+reads manifests. It never wraps a child process in a stopwatch and calls the
+result a language comparison, because that figure includes process spawn,
+serialization, and pipe transit — none of which is a property of the sorting
+algorithm.
+
+The boundary cost is real and gets measured, **once**, as its own artifact
+(`docs/BOUNDARY-COST.md`). It is stated, it is understood, and it never enters
+a comparison between implementations.
+
+---
+
+## 2. Phases
+
+A total runtime hides what you actually want to know. Each implementation
+reports three phases with hard boundaries:
+
+| Phase | Starts | Ends |
+|---|---|---|
+| `load`  | first byte requested from the OS | in-memory representation complete and ready to operate on |
+| `work`  | first comparison, partition, or probe | ordering or join result fully determined **in memory** |
+| `emit`  | first output byte formatted | final write flushed and the handle closed |
+
+`work` is the cross-language comparison. `load` and `emit` are where the
+surprises live — for this workload they may well dominate, and a `work` phase
+8× faster inside a total 1.2× faster is the honest and more instructive
+result.
+
+`startup_ns` is reported **separately and belongs to no phase**: process spawn
+through runtime initialization, up to the point the program begins `load`. It
+is excluded from every comparison and recorded anyway, because for a CLI
+workload it is a genuine language difference and hiding it would be dishonest.
+
+---
+
+## 3. Clock discipline
+
+| Runtime | Clock |
+|---|---|
+| Node | `process.hrtime.bigint()` |
+| Rust | `std::time::Instant` |
+| C++  | `std::chrono::steady_clock` |
+
+Monotonic in all three. Never wall clock, never `Date.now()`, never
+`system_clock`. All durations reported in **nanoseconds, as integers.**
+
+---
+
+## 4. Cold and warm
+
+A cold JS run measures the interpreter tier; a warm run measures optimized
+JIT output. Both are true, and which one is "JavaScript's performance"
+depends on whether the workload is a long-lived process or a CLI invocation.
+That *is* the tradeoff, so both are reported rather than one being chosen.
+
+Each job runs `repeat` iterations inside a single process. Index 0 is `cold`;
+all subsequent iterations are `warm`. Rust and C++ report the same structure
+and will show a nearly flat profile — **that flatness is data**, and the
+asymmetry between the runtimes is one of the findings.
+
+---
+
+## 5. Peak memory
+
+Peak RSS is the only figure comparable across runtimes. Heap statistics are
+not commensurable — Node's heap accounting and Rust's allocator behavior do
+not describe the same thing. Sampled by the process itself, reported once per
+run, covering the whole process lifetime.
+
+| Platform | Source | Documented unit |
+|---|---|---|
+| Windows | `GetProcessMemoryInfo` → `PeakWorkingSetSize` | bytes |
+| macOS   | `getrusage(RUSAGE_SELF).ru_maxrss` | **bytes** on Darwin |
+| Linux   | `getrusage(RUSAGE_SELF).ru_maxrss` | **kilobytes** |
+
+That units discrepancy is real and has bitten everyone once.
+
+**Do not trust any of the above, including Node's `process.resourceUsage()`,
+until it is verified empirically on each target platform.** Build
+`packages/harness/rss-probe` first: allocate and touch a known number of
+bytes, read the reported figure, confirm the ratio. A memory comparison built
+on a units assumption is worse than no memory comparison, because it looks
+authoritative. This probe is a Module 01 deliverable, not an afterthought.
+
+---
+
+## 6. Job spec — into the process
+
+```json
+{
+  "contract": 1,
+  "job_id": "sort-A-mid-merge-st-0001",
+  "op": "sort",
+  "tier": "mid",
+  "inputs": [{ "dataset": "A", "path": "/abs/path/A.tsv" }],
+  "key": { "level": 1, "type": "int64" },
+  "algorithm": "merge",
+  "threads": 1,
+  "output": { "path": "/abs/path/out/A.sorted.tsv", "emit": true },
+  "repeat": 3
+}
+```
+
+Small, human-readable, and carrying no data. The datasets stay as files the
+implementation reads directly, so serialization never distorts a benchmark.
+
+## 7. Manifest — out of the process
+
+```json
+{
+  "contract": 1,
+  "job_id": "sort-A-mid-merge-st-0001",
+  "impl": {
+    "runtime": "rust", "runtime_version": "1.89.0",
+    "name": "merge-st", "algorithm": "merge",
+    "threads": 1, "parallel_strategy": null
+  },
+  "platform": {
+    "os": "darwin", "arch": "arm64",
+    "cpu": "Apple M4 Pro", "cores_physical": 12,
+    "ram_bytes": 25769803776
+  },
+  "tier": "mid", "dataset": "A",
+  "records_in": 3937500, "records_out": 3937500,
+  "startup_ns": 1840000,
+  "runs": [
+    { "index": 0, "state": "cold",
+      "phases_ns": { "load": 0, "work": 0, "emit": 0 },
+      "peak_rss_bytes": 0 }
+  ],
+  "invariants": { "I1": "pass", "I2": "pass", "I3": "pass" },
+  "notes": []
+}
+```
+
+Manifests are **committed results**. They are small, diffable JSON with
+history, which is what lets `large`-tier figures produced on one machine be
+displayed on another without re-running them.
+
+An implementation that cannot report a field emits `null` and a line in
+`notes`. It never omits the key and never guesses.
+
+---
+
+## 8. The work list is a matrix
+
+Not three implementations — a matrix of *algorithm × runtime × threading*,
+where every cell has identical shape and independent verification. That is the
+pipeline case, and it is why adding a runtime later costs a row rather than a
+project.
+
+| Runtime | Cells |
+|---|---|
+| JS | built-in `Array.prototype.sort` (control), iterative merge, iterative quicksort, radix (int keys), `worker_threads` + `SharedArrayBuffer` |
+| Rust | `sort_unstable`/`sort` (control), merge, radix, pattern-defeating quicksort, rayon-parallel |
+| C++ | `std::sort` (control), merge, radix, `std::thread` pool parallel |
+
+`threads: 1` is mandatory for every algorithm before any parallel cell is
+believed.
+
+Note that the JS built-in is TimSort in C++ underneath, and will beat most
+hand-written contenders on single-threaded comparison sorting. The reference
+implementation is therefore both the oracle *and* a first-class competitor
+with a legitimate claim to winning cells — which is itself one of the
+tutorial's better lessons.
+
+---
+
+## 9. Platform rules
+
+Two development targets from day one: Windows/x86-64 and macOS/arm64.
+Portability validated while there is nothing to port; retrofitted later it
+costs a weekend.
+
+- **No `std::execution::par` in C++.** Apple clang ships no PSTL, so parallel
+  algorithms do not exist there. Use `std::thread` with a small pool. Decided
+  before any C++ is written.
+- **Build output lives outside the repo.** Set `CARGO_TARGET_DIR`; put the
+  CMake build directory outside the tree. ARM and x86 artifacts must never
+  meet.
+- **No platform-conditional paths in application code.** Platform differences
+  are confined to the RSS shim and nothing else.
+- **`large` tier runs on the 64 GB Windows machine only.** Its manifests are
+  committed and displayed elsewhere. The demo executes `mid`.
+
+---
+
+## 10. Change control
+
+| Version | Date | Change |
+|---|---|---|
+| v1 | 2026-08-22 | Initial draft. |

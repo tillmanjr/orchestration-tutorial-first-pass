@@ -1,0 +1,12 @@
+# Text is normalized to LF in the repo and checked out as LF everywhere.
+# Windows checkouts included. The generator emits LF and the oracle compares
+# bytes; a CRLF checkout would corrupt every datastring on one platform only.
+* text=auto eol=lf
+
+# Generated data is never text. Belt and braces: data/ is gitignored, but a
+# stray sample committed by hand must not be line-ending converted.
+*.tsv   -text
+*.bin   -text
+
+# Manifests are committed results. Keep them diffable.
+*.json  text eol=lf

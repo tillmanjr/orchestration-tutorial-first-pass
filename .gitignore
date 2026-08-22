@@ -1,0 +1,17 @@
+node_modules/
+target/
+*.log
+.DS_Store
+Thumbs.db
+
+# Superseded by .donotdelete markers; the mount forbids deletion, so they are
+# ignored rather than removed. Delete them on a machine with write access.
+.gitkeep
+
+# Generated data and benchmark scratch are ignored, but the directories
+# themselves are kept. A bare "data/" would stop git descending into the
+# directory at all, and the marker would never survive a clone.
+data/*
+!data/.donotdelete
+bench-out/*
+!bench-out/.donotdelete
