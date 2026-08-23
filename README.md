@@ -32,6 +32,7 @@ agents, and it is the reason this problem was chosen over any other.
 | `docs/DATASET-SPEC.md` | The data: shape, key overlaps, PCG32 determinism, tiers, collation, and the seven invariants. |
 | `docs/MEASUREMENT-CONTRACT.md` | How anything is allowed to be measured: phases, clocks, cold/warm, peak RSS, job spec and manifest schemas, the work matrix. |
 | `docs/BOUNDARY.md` | What crosses the process boundary in both directions, the error case, exit codes, and how each side is verified with the other absent. |
+| `docs/DELEGATION.md` | How a brief is written for an agent that cannot see the conversation: bounded loops, blocked as a legitimate outcome, and why verification never iterates. |
 | `docs/LOG.md` | Dated decisions, discoveries, corrections and failures, written the day they happened. The raw material the finished tutorial is assembled from — see M8. |
 
 All three are **frozen at M4**. A change is now an event: bump the version and stop every agent building against them. Rollback baseline is the git tag `pre-freeze`.

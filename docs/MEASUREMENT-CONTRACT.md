@@ -1,4 +1,4 @@
-# Measurement Contract — v1.2 (frozen)
+# Measurement Contract — v1.3 (frozen)
 
 ---
 
@@ -144,6 +144,22 @@ assumed unit is worse than no comparison, because it looks authoritative.
 Measured on darwin-arm64 at the tiny tier, two cold runs of identical work
 differed by **13% on `work`, 12% on `load` and 41% on `startup_ns`**.
 
+> **v1.3 correction — the floor is a property of the host, not of the
+> project.** v1.2 stated 13% as a constant every comparison was bound by. The
+> first fan-out observed **16–46%** and **38–200%** on a 2-core sandbox. A
+> threshold that governs every comparison cannot be one number measured once
+> on one machine at one tier: it belongs to the host, the tier and the load,
+> and must be measured where the comparison is made. Same argument as
+> `rss-probe`, one level up. A `noise-probe` is owed and not yet built.
+>
+> Until it exists, **13% is the floor for darwin-arm64 at tiny and for nothing
+> else.** Any comparison on another host states its own measured spread or is
+> not a comparison.
+>
+> Also corrected: the rule "a difference must exceed the observed spread"
+> compared a spread in milliseconds against a floor quoted in percent. Both
+> are now expressed as a **fraction of `work_warm_min`**.
+
 Three rules follow, and they bind every comparison in this project:
 
 - **A single run is not a measurement.** `repeat` is mandatory for anything
@@ -158,6 +174,30 @@ Three rules follow, and they bind every comparison in this project:
 
 Any published comparison carries its noise floor beside it. Without that, a
 reader has no way to tell a result from an artefact — and neither did we.
+
+## 5b. Benchmark admissibility
+
+**A timing is a measurement only on a host that has declared itself a
+benchmark host.** Every manifest carries `benchmark_admissible` and
+`admissibility_reason`.
+
+Opt-in is explicit — `ORCH_BENCHMARK_HOST=1`, or a `.benchmark-host` marker at
+the repo root. Nothing is auto-detected: "is this a real machine" has no
+reliable test, and a wrong guess silently certifies numbers that mean nothing.
+
+This exists because `MILESTONES.md` E8 — *the agent's sandbox never runs a
+benchmark* — was written down, accurate, and ignored. The first fan-out
+benchmarked there anyway, produced spreads of up to 200%, and both agents
+concluded this document was wrong rather than that their host was
+inadmissible. They had no way to know: nothing in the manifest, the runner or
+their brief said so.
+
+**A precondition that is not enforced is a comment.**
+
+Inadmissible timings are still recorded — they are a useful smoke test. They
+are simply not a measurement, and the manifest now says which it is instead of
+leaving a reader to infer it from the platform block. Correctness results are
+unaffected by admissibility.
 
 ## 6. Job spec — into the process
 
@@ -265,5 +305,6 @@ costs a weekend.
 | Version | Date | Change |
 |---|---|---|
 | v1 | 2026-08-22 | Initial draft. |
+| v1.3 | 2026-08-22 | §5a: the noise floor is a per-host measured quantity, not a project constant — observed 16–200% on a 2-core host against a documented 13%. Units reconciled. Added §5b, benchmark admissibility, after a fan-out benchmarked on the machine E8 forbids. |
 | v1.2 | 2026-08-22 | Added §5a, the noise floor: 13% single-run variance measured, and the rules that follow. §5 peak RSS is sampled before invariant checks, not after. |
 | v1.1 | 2026-08-22 | §5 corrected: RSS units vary by access path, not by platform alone. Node reports kilobytes everywhere; native code does not. Verified on win32-x64. |

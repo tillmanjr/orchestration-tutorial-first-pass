@@ -144,11 +144,53 @@ failure shape.
 failure rather than a constructed one.
 
 ### T7 · The first fan-out
-**Worked example.** Several JS algorithms built concurrently in isolated
-worktrees against a frozen contract. Pipeline versus barrier, concurrent
-mutation, and why a fan-out must collapse into a result rather than into N
-summaries.
-**Status: pending M5.**
+**Worked example.** Several JS algorithms built concurrently against a frozen
+contract. Pipeline versus barrier, and why a fan-out must collapse into a
+result rather than into N summaries.
+
+**Artifacts:** `packages/harness/conformance/` (the admission gate),
+`docs/DELEGATION.md` (how a brief is written).
+
+**Material already earned, before the fan-out completed:**
+
+- *A good contract can remove the need for isolation.* Worktree isolation was
+  planned. It turned out unnecessary: each agent owns exactly one new file and
+  cell discovery is filesystem-based, so there is no shared file to contend
+  over. Decomposing so agents never touch the same thing beats isolating them
+  after they do.
+- *The conformance suite asserted a property it did not have* — it passed only
+  for the cell it was written against, which is the exact thing it existed to
+  prevent. Found by the first agent to add a second cell. A checker is not
+  exempt from needing to be checked.
+- *Unbounded iteration in a brief*, caught in review rather than by running
+  it. The only error class in this project where review was cheaper than
+  execution, because running it is what makes it expensive.
+- *Asking agents what was ambiguous returns defects.* The first cell returned
+  four, in the harness rather than in its own work.
+
+**From the fan-out itself:**
+
+- *The headline.* Three cells were built and verified correctly, and every
+  timing was worthless — the agents benchmarked on the machine a written
+  precondition forbids. **A precondition that is not enforced is a comment.**
+  E8 existed, was accurate, and was ignored, and the agents blamed the
+  contract rather than their host because nothing told them otherwise.
+- *The admission gate is the highest-leverage place for an undetected defect.*
+  Three agents found three separate defects in the conformance suite, each by
+  the act of adding a cell. A wrong cell fails one row; a wrong gate silently
+  certifies every row.
+- *Adversarial verification is not ceremony.* It caught an implementer's
+  reported defect being factually wrong, and an overstated verification claim
+  ("3M+ values" against a reproducible 1.9M). Neither was reachable by any
+  mechanical check.
+- *A permitted negative answer costs nothing and buys accuracy.* `workers` was
+  predicted to be impossible and was not. Being wrong was free because
+  `blocked` was an allowed outcome rather than a failure.
+- *The bound was never reached, which is not evidence it was unnecessary.*
+  Attempts used were 1, 2, 2 against a budget of 5. The run that needed it did
+  not happen; the limiter cost one paragraph.
+
+**Status: in progress (M5). Correctness half done, measurement half not.**
 
 ### T8 · Adding a runtime costs a row, not a project
 **Worked example.** The Rust row, then C++. Tests the claim that a correct

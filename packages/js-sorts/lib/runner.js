@@ -8,10 +8,97 @@
 // algorithm. See MEASUREMENT-CONTRACT §1.
 
 import { writeFileSync, mkdirSync, readFileSync } from 'node:fs';
-import { dirname } from 'node:path';
+import { dirname, isAbsolute } from 'node:path';
 import os from 'node:os';
 import { load } from './load.js';
 import { checkI1, checkI2, checkI3, digest } from '../../oracle/invariants.js';
+
+// --- boundary errors ------------------------------------------------------
+//
+// BOUNDARY.md §4. The distinction that carries the weight:
+//
+//   exit 1  the cell ran and its output is wrong -- a RESULT, manifest emitted
+//   exit 2  the job spec was rejected before any work began
+//   exit 3  the cell never got far enough to have an opinion
+//
+// Collapsing 1 and 3 loses the difference between a broken algorithm and a
+// full disk. Before this was enforced, a missing input file exited 1, so a
+// nonexistent path would have been recorded as a finding about the algorithm.
+
+class BoundaryError extends Error {
+  constructor(exitCode, stage, code, message, retryable = false) {
+    super(message);
+    Object.assign(this, { exitCode, stage, code, retryable });
+  }
+}
+
+function failBoundary(job, err) {
+  // stderr, never stdout: stdout carries the manifest and nothing else.
+  process.stderr.write(JSON.stringify({
+    contract: 1,
+    kind: 'error',
+    job_id: job?.job_id ?? null,
+    stage: err.stage,
+    code: err.code,
+    message: err.message,
+    retryable: err.retryable,
+  }) + '\n');
+  process.exit(err.exitCode);
+}
+
+/** Everything checkable before work begins. All failures here are exit 2. */
+function validateSpec(job, impl) {
+  const bad = (code, msg) => { throw new BoundaryError(2, 'spec', code, msg); };
+  if (job?.contract !== 1) bad('ECONTRACT', `unsupported contract version ${job?.contract}; this cell implements 1`);
+  if (job.op !== 'sort') bad('ENOTSUP', `op '${job.op}' not supported by this cell`);
+  const supported = impl.algorithms ?? [impl.name];
+  if (!supported.includes(job.algorithm)) bad('EALGO', `unknown algorithm '${job.algorithm}'; this cell offers ${supported.join(', ')}`);
+  if (!Array.isArray(job.inputs) || job.inputs.length !== 1) bad('EINVAL', `op 'sort' takes exactly one input, got ${job.inputs?.length}`);
+  for (const i of job.inputs) {
+    if (!i?.path) bad('EINVAL', 'input has no path');
+    // The cell's working directory is unspecified, so a relative path is a
+    // spec error rather than a lookup that might happen to succeed.
+    if (!isAbsolute(i.path)) bad('EPATH', `input path must be absolute: '${i.path}'`);
+  }
+  if (!Number.isInteger(job.threads) || job.threads < 1) bad('EINVAL', `threads must be an integer >= 1, got ${job.threads}`);
+  if (job.output?.emit && !job.output.path) bad('EINVAL', 'output.emit is true but output.path is null');
+}
+
+// --- benchmark admissibility ---------------------------------------------
+//
+// MILESTONES.md E8 says the agent's sandbox never runs a benchmark. It was
+// written down, it was accurate, and the first fan-out benchmarked there
+// anyway -- because device_bash goes there and nothing stopped it. Both
+// agents reported warm spreads of 16-200% against the contract's 13% floor
+// and concluded the CONTRACT was wrong. It was not. They were on the wrong
+// machine.
+//
+// A precondition that is not enforced is a comment. So: explicit opt-in.
+// A host is a benchmark host only if it says so -- an env var or a marker
+// file at the repo root. Nothing is auto-detected, because "is this a real
+// machine" has no reliable test and a wrong guess here silently certifies
+// numbers that mean nothing.
+//
+// Timings are still recorded when inadmissible: they are useful as a smoke
+// test. They are simply not a measurement, and the manifest says so rather
+// than leaving a reader to infer it from the platform block.
+
+function benchmarkAdmissibility() {
+  if (process.env.ORCH_BENCHMARK_HOST === '1') {
+    return { admissible: true, reason: 'ORCH_BENCHMARK_HOST=1' };
+  }
+  try {
+    const marker = new URL('../../../.benchmark-host', import.meta.url);
+    readFileSync(marker);
+    return { admissible: true, reason: '.benchmark-host marker present at repo root' };
+  } catch { /* absent */ }
+  return {
+    admissible: false,
+    reason: 'no benchmark-host opt-in (set ORCH_BENCHMARK_HOST=1 or create .benchmark-host at the repo root). Timings recorded but NOT admissible as measurements -- see MILESTONES.md E8.',
+  };
+}
+
+const ADMISSIBLE = benchmarkAdmissibility();
 
 // ms since process start, including Node bootstrap. Captured at import time so
 // it is as close to "the process began" as this runtime allows.
@@ -41,26 +128,57 @@ function serialise(loaded) {
  *   algorithm(loaded) -> a loaded-shaped object in sorted order.
  */
 export function runCell(job, impl) {
+  validateSpec(job, impl);
+
+  // BOUNDARY.md §2: load_mode is a HINT. A cell that cannot offer the
+  // requested mode uses its own and says so, rather than failing a whole
+  // matrix row. Previously the runner passed the value straight to load(),
+  // which threw and became exit 3 -- so the graceful-degradation clause was
+  // unimplementable from inside a cell. Reported by the first cell author.
+  const OFFERED = ['aos', 'soa'];
+  const requested = job.load_mode ?? 'aos';
+  const actualLoadMode = OFFERED.includes(requested) ? requested : 'aos';
+
   const input = job.inputs[0];
   const repeat = job.repeat ?? 1;
   const runs = [];
   const notes = [];
+  if (actualLoadMode !== requested) {
+    notes.push(`load_mode: requested '${requested}' not offered; used '${actualLoadMode}'`);
+  }
 
   let lastSorted = null, lastLoaded = null;
 
   for (let i = 0; i < repeat; i++) {
+    // Each phase maps its failures to exit 3 with the stage named, because a
+    // fan-out summary of "twenty cells failed at load" is one problem while
+    // "twenty failed at work" is twenty.
     const t0 = ns();
-    const loaded = load(input.path, { mode: job.load_mode ?? 'aos', dataset: input.dataset });
+    let loaded;
+    try {
+      loaded = load(input.path, { mode: actualLoadMode, dataset: input.dataset });
+    } catch (e) {
+      throw new BoundaryError(3, 'load', e.code ?? 'EIO', e.message, e.code === 'ENOENT' ? false : true);
+    }
     const t1 = ns();
 
-    const sorted = impl.algorithm(loaded);
+    let sorted;
+    try {
+      sorted = impl.algorithm(loaded);
+    } catch (e) {
+      throw new BoundaryError(3, 'work', e.code ?? 'EWORK', e.message);
+    }
     const t2 = ns();
 
     let emitNs = 0;
     if (job.output?.emit) {
-      const text = serialise(sorted);
-      mkdirSync(dirname(job.output.path), { recursive: true });
-      writeFileSync(job.output.path, text);
+      try {
+        const text = serialise(sorted);
+        mkdirSync(dirname(job.output.path), { recursive: true });
+        writeFileSync(job.output.path, text);
+      } catch (e) {
+        throw new BoundaryError(3, 'emit', e.code ?? 'EIO', e.message, true);
+      }
       emitNs = Number(ns() - t2);
     }
 
@@ -120,7 +238,8 @@ export function runCell(job, impl) {
       algorithm: job.algorithm,
       threads: impl.threads ?? 1,
       parallel_strategy: impl.parallelStrategy ?? null,
-      load_mode: job.load_mode ?? 'aos',
+      load_mode: actualLoadMode,
+      load_mode_requested: requested,
     },
     platform: {
       os: process.platform,
@@ -147,6 +266,11 @@ export function runCell(job, impl) {
     peak_rss_bytes: peakAfterWork,
     memory_measurement_valid: repeat === 1,
     peak_rss_includes: 'load, work and emit only; sampled before invariant checks',
+
+    // Every timing and memory figure below is inadmissible as a measurement
+    // unless this is true. Correctness results are unaffected.
+    benchmark_admissible: ADMISSIBLE.admissible,
+    admissibility_reason: ADMISSIBLE.reason,
 
     summary_ns: {
       work_cold: workNs[0],
@@ -189,13 +313,22 @@ export function main(impl) {
     };
   }
 
-  const manifest = runCell(job, impl);
+  let manifest;
+  try {
+    manifest = runCell(job, impl);
+  } catch (e) {
+    if (e instanceof BoundaryError) failBoundary(job, e);
+    failBoundary(job, new BoundaryError(3, 'startup', 'EUNKNOWN', e.message));
+  }
   const out = opt('--manifest', null);
   if (out) { mkdirSync(dirname(out), { recursive: true }); writeFileSync(out, JSON.stringify(manifest, null, 2) + '\n'); }
 
   console.log(JSON.stringify(manifest, null, 2));
   const failed = Object.entries(manifest.invariants).filter(([, v]) => v !== 'pass');
   if (failed.length) { console.error(`\nINVARIANT FAILURE: ${failed.map(([k]) => k).join(', ')}`); process.exit(1); }
+  if (!manifest.benchmark_admissible) {
+    process.stderr.write(`\nNOT A BENCHMARK HOST -- timings below are a smoke test, not a measurement.\n  ${manifest.admissibility_reason}\n`);
+  }
   const s2 = manifest.summary_ns;
   const mem = manifest.memory_measurement_valid
     ? `${(manifest.peak_rss_bytes / 1048576).toFixed(0)}MB`

@@ -131,6 +131,20 @@ machines generate real data and run every benchmark. This is not a limitation
 worth engineering around — it enforces a separation that is correct anyway,
 since a benchmark run on a shared virtualised host is not a measurement.
 
+> **This precondition was ignored, and that is the point.** The first fan-out
+> benchmarked here anyway — `device_bash` lands on this machine and nothing
+> stopped it. Both agents observed spreads of up to 200% and concluded the
+> measurement contract was wrong rather than that their host was inadmissible.
+> They had no way to know.
+>
+> **A precondition that is not enforced is a comment.** E8 is now a gate:
+> manifests carry `benchmark_admissible`, and a host is only a benchmark host
+> if it declares itself one (`ORCH_BENCHMARK_HOST=1` or a `.benchmark-host`
+> marker). See `MEASUREMENT-CONTRACT` §5b.
+>
+> Worth asking of every other precondition in Part 1: which of these are gates,
+> and which are still comments?
+
 ---
 
 # Part 2 — Milestones
@@ -147,7 +161,7 @@ no, it is not an exit criterion.
 | **M2** | Walking skeleton green | **met** | `builtin` cell sorts A/B/C at tiny in both load modes; I1–I3 pass under independent oracle verification; manifests emitted with phases, cold/warm and RSS |
 | **M3** | Determinism across platforms | **met** | `results/determinism/tier-tiny.json`; byte-identical on linux-x64, win32-x64, darwin-arm64. Re-check with `node packages/generator/verify-determinism.js` |
 | **M4** | Contracts frozen; boundary written | **met** | `DATASET-SPEC` and `MEASUREMENT-CONTRACT` frozen at v1.2; `BOUNDARY.md` v1. Rollback baseline: git tag `pre-freeze` |
-| **M5** | First fan-out — the JS row | not started | |
+| **M5** | First fan-out — the JS row | **partial** | five cells pass all ten conformance cases, byte-identical in both load modes, adversarially verified. But every timing came from an inadmissible host, so the *measurement* half is unmet. Blocked on: conformance defects (dataset/cwd/`soa`), a `noise-probe`, and a benchmark run on a declared host |
 | **M6** | Second runtime — the Rust row | not started | |
 | **M7** | Zip and merge | not started | |
 | **M8** | Synthesis, gated | not started | |

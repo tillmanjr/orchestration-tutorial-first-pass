@@ -1,4 +1,4 @@
-# The Boundary — v1 (frozen at M4)
+# The Boundary — v1.1 (frozen at M4)
 
 The deliverable from Workbook §9: **where the boundary is, everything that
 crosses it in both directions including the error case, and how each side is
@@ -68,7 +68,7 @@ partially-written pipe is a failure mode with no diagnostic.
 | `inputs` | array | yes | Each `{dataset, path}`. `sort` takes exactly one. Paths are absolute. |
 | `algorithm` | string | yes | Cell-specific. Unknown value → exit 2. |
 | `threads` | int | yes | `1` means single-threaded, and every algorithm must support it. |
-| `load_mode` | string | no | Runtime-specific hint. A cell that does not offer the mode uses its own and **says so in `notes`** rather than failing. |
+| `load_mode` | string | no | Runtime-specific hint. A cell that does not offer the mode uses its own, reports the mode **actually used** in `impl.load_mode`, echoes the request in `impl.load_mode_requested`, and adds a line to `notes`. Never fails on this. |
 | `output.emit` | bool | yes | When false, `output.path` may be null and the `emit` phase reports 0. |
 | `repeat` | int | no | Default 1. Memory is only valid at 1 (contract §5). |
 
@@ -212,6 +212,16 @@ and verified without touching the harness — and this suite is what decides it.
 **Status: specified, not built.** It is a deliverable of M5, before the first
 fan-out, not of M6.
 
+### Phase ownership of defensive copies
+
+A cell that copies its input before sorting — to keep the original available
+for the permutation check — charges that copy to **`work`**, not to `load`.
+
+It is a small constant and it applies to every comparison-sort cell equally,
+so it does not distort a comparison. It is specified only because it was
+unspecified, two independent implementations each had to guess, and both
+happened to guess the same way. The next one might not.
+
 ---
 
 ## 6. What deliberately does not cross
@@ -230,3 +240,4 @@ fan-out, not of M6.
 | Version | Date | Change |
 |---|---|---|
 | v1 | 2026-08-22 | Initial, frozen at M4 alongside both contracts. |
+| v1.1 | 2026-08-22 | §2 `load_mode`: the graceful-degradation clause was unimplementable — the runner passed the value straight to the loader, which threw and became exit 3. Manifest now reports the mode actually used plus the request. §5 gains phase ownership of defensive copies. Both raised by the first agent to write a cell against this document. |

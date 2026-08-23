@@ -15,3 +15,13 @@ data/*
 !data/.donotdelete
 bench-out/*
 !bench-out/.donotdelete
+
+# Per-machine benchmark opt-in. MUST NOT be committed: if this travelled with
+# the repo every host would declare itself admissible, including the agent
+# sandbox E8 forbids -- which would restore exactly the failure the marker
+# exists to prevent. Each machine creates its own.
+.benchmark-host
+
+# Files the mount would not let an agent delete. Contents are staged for
+# manual removal, not for version control.
+_to_delete/

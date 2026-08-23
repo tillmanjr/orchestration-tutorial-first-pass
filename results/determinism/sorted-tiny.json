@@ -1,0 +1,23 @@
+{
+  "contract": 1,
+  "kind": "sorted-reference",
+  "note": "Correctly sorted tiny-tier output under the declared total orders (DATASET-SPEC v1.2 \u00a76). Any cell, any runtime, any algorithm must reproduce these bytes exactly. Conformance case C10.",
+  "tier": "tiny",
+  "seed": 20260822,
+  "spec_version": "1.2",
+  "produced_by": "packages/js-sorts/cells/builtin.js (aos); soa verified byte-identical",
+  "files": {
+    "A.sorted.tsv": {
+      "sha256": "e1dcec8fcb6cf601bc7a79e01ba10f97568a94baaa8e2b2de9c6a967d9f95056",
+      "bytes": 16186119
+    },
+    "B.sorted.tsv": {
+      "sha256": "6d84ecfd6abd9b8fc9fda282acb7027ffbde96b7d227b5b8581364a8a1f82f93",
+      "bytes": 16465633
+    },
+    "C.sorted.tsv": {
+      "sha256": "a8febbc85e907ae5f1ba18957db74757b32e02cd051e174d3e74fb99f780548e",
+      "bytes": 17253174
+    }
+  }
+}

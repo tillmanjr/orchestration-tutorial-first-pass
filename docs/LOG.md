@@ -349,3 +349,260 @@ Filing the earlier comparison as an *observation* rather than a *finding* was
 correct, and this quantifies why. The discipline is cheap. The alternative is
 a tutorial asserting an architecture advantage that a second run would have
 falsified.
+
+### DISCOVERY — the first delegated cell found four defects, one of which defeated the conformance suite entirely
+
+A single agent was given the contracts, the reference cell, and a brief. No
+conversational context. It produced `packages/js-sorts/cells/merge.js` — a
+bottom-up iterative merge sort, both load modes, byte-identical output to the
+reference on all three datasets, all invariants passing.
+
+That part worked. The valuable part is what it found.
+
+**1. The conformance suite only passed for the cell it was written against.**
+`baseSpec` hardcoded `algorithm: 'builtin'`, so every case handed the new cell
+an algorithm it does not offer and `validateSpec` correctly rejected it with
+exit 2. Six of ten cases failed for a reason that had nothing to do with the
+cell.
+
+This is precisely the property `BOUNDARY.md` §5 claims the suite exists to
+test — *"a new runtime can be dropped in and verified without the harness
+being touched"* — and the harness needed touching by the second cell. The
+suite asserted a property it did not have.
+
+Found at the cheapest possible moment: the first time a second implementation
+existed. Fixed by deriving the algorithm from the cell's filename.
+
+**2. Conformance case C2 could not fail for the reason it was looking for.**
+It checked that stdout parsed as JSON. Empty stdout parses vacuously, so any
+cell that exited before producing output scored a clean pass on "stdout
+carries the manifest and nothing else". Now asserts the happy path exits 0 and
+stdout is non-empty first.
+
+**3. `BOUNDARY.md` §2's graceful-degradation clause was unimplementable.** The
+document said a cell that cannot offer the requested `load_mode` uses its own
+and notes it. The runner passed `job.load_mode` straight to the loader, which
+threw on an unknown mode and became exit 3 at stage `load`. Doc and code
+disagreed and nothing had exercised the path. Fixed in the runner; the
+manifest now reports the mode **actually used** alongside the one requested,
+because reporting the request would let a summary label a run `soa` that ran
+`aos`.
+
+**4. Phase ownership of the defensive input copy was unspecified.** Both
+implementations charged it to `work` and both had to guess. Now stated.
+
+### The pattern, again
+
+Every one of these is the same shape as the RSS corrections: something
+precise, reproducible, and correctly labelled by its own code, asserting a
+property it did not have. The conformance suite is the sharpest instance,
+because its entire purpose was to catch exactly this class of error in other
+people's cells, and it contained one.
+
+**A checker is not exempt from needing to be checked.** The oracle self-test
+was built on that principle and the conformance suite was not, because by then
+the principle felt established. Writing `oracle.selftest.js` and then not
+writing the equivalent for the conformance suite is the error.
+
+### OBSERVATION — merge vs the built-in, correctly not reported as a difference
+
+The agent applied `MEASUREMENT-CONTRACT` §5a without being told to:
+
+| ds | merge warm_min | merge spread | builtin warm_min | builtin spread |
+|---|---|---|---|---|
+| A | 43.1 ms | 12.5 ms | 47.0 ms | 5.4 ms |
+| B | 27.3 ms | 9.4 ms | 36.9 ms | 2.5 ms |
+| C | 41.3 ms | 15.6 ms | 44.9 ms | 7.0 ms |
+
+Merge is nominally 4–10 ms faster; merge's own spread is 9–16 ms. **The gap
+does not clear the noise floor and was not reported as a difference.**
+
+What does clear it is the cold/warm asymmetry: merge's cold run is 1.6–2× its
+warm minimum, the built-in's is 1.1–1.3×. That is the JS merge loop being
+tiered up by the JIT against TimSort already being compiled C++ — which is the
+asymmetry `MEASUREMENT-CONTRACT` §4 predicted, showing up in the first cell
+that could exhibit it.
+
+### CORRECTION — an unbounded loop in a brief, caught in review before the fan-out ran
+
+The first fan-out script was rejected by the operator with one requirement:
+put a limiter on looping. The brief contained the line
+
+    Iterate until all three hold.
+
+That is not an instruction. It is an unbounded loop with no exit condition,
+handed to an agent that has no way to know stopping is permitted.
+
+The likely victim was identified in advance: the `workers` cell.
+`SharedArrayBuffer` cannot hold JavaScript strings and every record contains
+them, so a genuinely parallel string sort may be impossible within the
+constraints. An agent told to iterate until it passes, on a task that cannot
+pass, does not stop — and the failure is never reported, because it is still
+"in progress" when something else kills it.
+
+Three loop sites existed and only one was bounded:
+
+| Site | Before | After |
+|---|---|---|
+| inside an implement agent | "iterate until all hold" | 5-attempt budget, tool-call ceiling, `blocked` as a legitimate outcome |
+| verify agent | single pass — already bounded | made explicit: verification never iterates |
+| implement ↔ verify retry | did not exist | kept non-existent, and stated as a rule |
+
+The third is the tempting one. Feeding a failed verdict back for another
+attempt reads as diligence, and it is how a two-stage pipeline acquires an
+unbounded loop that neither stage contains. **A rejected cell is a result.** A
+human decides whether to re-run it, and that decision is the bound.
+
+Written up as `docs/DELEGATION.md` — the rules for briefing an agent that
+cannot see the conversation. Companion to `BOUNDARY.md`: that one governs what
+crosses a *process* boundary, this one what crosses a *context* boundary.
+
+Two rules in it are worth flagging as non-obvious:
+
+- **`blocked` must be explicitly permitted in the brief.** An agent that
+  believes only success is acceptable will manufacture it — weaken a check,
+  claim partial work as complete, or grind past usefulness. A well-explained
+  impossibility is often the most valuable thing a delegated agent returns.
+- **Ask for the defects explicitly.** Without a sentence inviting them, an
+  agent optimises for appearing successful and the ambiguities never surface.
+  With it, the first delegated cell returned four.
+
+Worth recording how this was caught: **by reading the brief, not by running
+it.** No mechanical check would have found it. Every other correction in this
+log came from execution; this one came from review, and it is the only class
+of error where review is cheaper — an unbounded loop is expensive precisely
+because running it is how you discover it.
+
+## The first fan-out — 3 cells, 6 agents, 0 errors
+
+`quick`, `radix` and `workers` implemented and adversarially verified in a
+bounded pipeline. All three confirmed. Attempts used: 1, 2, 2 — nobody
+approached the budget of 5, nobody reported blocked. Five cells now pass all
+ten conformance cases, byte-identical in both load modes, verified
+independently after the run.
+
+`workers` was expected to come back blocked and did not. It is a real
+`SharedArrayBuffer` + `Atomics.wait` parallel sort: shared `Float64Array` of
+primary keys and `Int32Array` index permutation, workers sorting disjoint
+ranges, merge and string tie-break resolution on the main thread where the
+strings live. `threads: 1` honoured. The prediction was wrong, and being
+wrong cost nothing because `blocked` was a permitted answer rather than a
+failure.
+
+### FINDING — the benchmarks ran on the machine a precondition forbids
+
+Every timing the fan-out produced is worthless, and the correctness results
+are entirely sound.
+
+The agents benchmarked on `linux-x64, 2 logical cores, 3.8 GB` — the agent's
+own sandbox. `MILESTONES.md` E8 states plainly that this machine never runs a
+benchmark. It goes on doing so because `device_bash` lands there and nothing
+stopped it.
+
+Both agents independently reported warm spreads of **16–200% of warm_min**
+against the contract's 13% floor. Both concluded the **contract** was wrong.
+It was not. They were on the wrong machine, and the contract's figure was
+measured on a real one.
+
+The failure is not that the agents were careless. They reported the anomaly
+clearly and one of them explicitly declined to name any winner, writing *"the
+work phase is not resolvable at repeat=5 in this environment"*. They simply
+had no way to know the environment was inadmissible, because nothing in the
+manifest, the runner or the brief said so.
+
+**E8 was written down, was accurate, and was ignored — because a precondition
+that is not enforced is a comment.**
+
+Fixed by making it a gate. A host is a benchmark host only if it says so:
+`ORCH_BENCHMARK_HOST=1` or a `.benchmark-host` marker at the repo root.
+Nothing is auto-detected — "is this a real machine" has no reliable test, and
+a wrong guess silently certifies numbers that mean nothing. Manifests now
+carry `benchmark_admissible` and `admissibility_reason`, and the CLI prints
+`NOT A BENCHMARK HOST` rather than leaving a reader to infer it from the
+platform block.
+
+Timings are still recorded when inadmissible. They are a useful smoke test.
+They are simply not a measurement, and now the manifest says which it is.
+
+### FINDING — the noise floor is a per-host property, stated as a project constant
+
+`MEASUREMENT-CONTRACT` §5a fixed the floor at 13%, measured once on
+darwin-arm64. Observed on the sandbox: 16–46% (`quick`), 38–200% (`radix`).
+
+A threshold every comparison in the project is bound by cannot be a single
+number measured on one machine at one tier. It is a property of the host, the
+tier and the load, and it must be measured where the comparison is made — the
+same argument as `rss-probe`, one level up. A `noise-probe` is now owed.
+
+The related defect, also reported: §5a's decision rule is stated in
+incommensurable units. "A difference must exceed the observed spread" compares
+a spread in milliseconds against a floor quoted as a percentage, and never
+reconciles them.
+
+### FINDING — the conformance suite was defective a third and fourth time
+
+Every cell added has found the admission gate broken in a new way:
+
+| Found by | Defect | Effect |
+|---|---|---|
+| scout (`merge`) | `algorithm` hardcoded to `builtin` | passed only for the cell it was written against |
+| scout (`merge`) | C2 passed on empty stdout | could not fail for the reason it checked |
+| `radix` | `dataset` hardcoded to `C` | A's string tie-break and B's all-numeric order never exercised |
+| `radix` | C10 resolves its reference against `process.cwd()` | verdict depends on the working directory — proven: 1/10 fails when run from `/tmp` |
+| `quick` | `load_mode` hardcoded to `aos` | a cell with a broken `soa` path passes all ten cases |
+| both | §5 lists a `threads: 1` case the suite never built | the document describes a gate that does not exist |
+
+**The admission gate is the highest-leverage place in the system for an
+undetected defect.** A wrong cell fails one row. A wrong gate silently
+certifies every row, and nothing downstream re-derives its verdict.
+
+Three agents, three separate defects, each found by the act of adding a cell
+rather than by review. The gate was never wrong in a way that made a good cell
+fail; it was wrong in ways that made cells pass for reasons unrelated to
+themselves.
+
+### FINDING — adversarial verification earned its place twice
+
+The verify stage was not ceremony. Two catches neither the implementer nor I
+would have made:
+
+- `quick` reported as a contract defect that *"the conformance gate never sets
+  `load_mode`"*. **Factually wrong** — `run.js` sets it, hardcoded to `aos`.
+  The substantive conclusion survived (only `aos` is ever exercised) but the
+  claim as written was false, and it would have gone into this log as fact.
+- `radix`'s header claimed digit extraction verified against BigInt over "3M+
+  values". The verifier could reproduce 1,897,736. An overstated verification
+  claim, caught by someone trying to reproduce it.
+
+Both are the same species: a confident, specific, checkable statement that
+nobody had checked. Neither was caught by any mechanical gate.
+
+### CORRECTION — a delegation rule collided with a precondition
+
+`DELEGATION.md` §6 tells verifiers to check scope with `git status`. On this
+mount git cannot unlink, so every verify agent left a `.git/index.lock` behind,
+and those locks collided with the operator's commits — one commit failed
+silently and was only noticed because HEAD was checked against expectation.
+
+The rule was written for a normal filesystem. E3 was not carried into it.
+Fixed: verifiers use `git --no-optional-locks status`, which does not take the
+index lock.
+
+### CORRECTION — a verifier left residue it could not remove
+
+Setting up a negative control, one verifier copied `radix.js` to
+`packages/js-sorts/cells/.__nc_radix.js` inside the repo and could not delete
+it (E3). It reported this itself, which is the only reason it was cleaned up.
+
+Moved to `_to_delete/` — the documented fallback when the mount refuses
+`unlink`. Two rules follow, now in `DELEGATION.md`: **scratch files go outside
+the repo**, and **an agent that cannot clean up must say so in its report**.
+
+### The bound was never reached, and that is not evidence it was unnecessary
+
+Attempts used: 1, 2, 2 against a budget of 5. Nobody blocked. It would be easy
+to conclude the limiter was unnecessary.
+
+It was not tested by this run. `workers` — the cell the bound existed for —
+succeeded on attempt 2. The limiter is insurance against the run where it does
+not, and the cost of carrying it was one paragraph in a brief.

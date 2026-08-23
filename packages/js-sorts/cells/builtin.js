@@ -70,6 +70,7 @@ function sortColumns(loaded) {
 
 main({
   name: 'builtin',
+  algorithms: ['builtin'],
   threads: 1,
   algorithm(loaded) {
     if (loaded.mode === 'soa') return sortColumns(loaded);
