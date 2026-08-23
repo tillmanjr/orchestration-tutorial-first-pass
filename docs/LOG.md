@@ -606,3 +606,95 @@ to conclude the limiter was unnecessary.
 It was not tested by this run. `workers` — the cell the bound existed for —
 succeeded on attempt 2. The limiter is insurance against the run where it does
 not, and the cost of carrying it was one paragraph in a brief.
+
+## Benchmark admissibility — three mechanisms in one sitting
+
+The gate that enforces E8 was rebuilt three times before it worked. Each
+revision fixed a real flaw in the previous one, and **every flaw was invisible
+until a specific environment exercised it.** None would have been caught by
+review.
+
+### v1 — a marker file at the repo root. Wrong for this topology.
+
+*"A host is a benchmark host if `.benchmark-host` exists."* Correct for a
+normal setup, and wrong here.
+
+**The agent's sandbox reaches the operator's disk through a mount, so it sees
+the operator's files.** A bare marker would have declared the sandbox a
+benchmark host — restoring precisely the failure the gate was built to
+prevent.
+
+The operator placed his marker outside the repo, in a sibling directory, on
+the reasoning that a file which cannot be committed is better than one that
+relies on `.gitignore`. That instinct was right and it exposed the flaw: the
+obvious fix was to widen the search path, **and widening the search path is
+what would have shipped the bug.** The sandbox would have found the marker and
+declared itself admissible.
+
+A file cannot answer *"which machine is executing"* when the filesystem is
+shared. It answers a question about the disk.
+
+### v2 — keyed on hostname. Process-scoped, and not stable.
+
+Hostname belongs to the process, not the disk, so the sandbox correctly
+refuses even while looking straight at the operator's marker file. Verified
+both directions: with `claude` listed it reports ADMISSIBLE, without it NOT
+ADMISSIBLE, the file visible throughout.
+
+Two further defects surfaced immediately:
+
+- **Case.** Windows reports `Xenomorph9`; a marker written `xenomorph9` would
+  have failed to match with a message that reads exactly like a missing entry.
+  Matching is now case-insensitive on both sides.
+- **Stability.** The Mac reports `shi-fnmy64ktm2.localdomain`. The
+  `.localdomain` suffix is DHCP-derived: the same machine can report `.local`
+  on another network, or a different name after a lease change or a VPN
+  connection. **If it shifts, the machine silently becomes inadmissible — and
+  the failure looks exactly like the gate working correctly.**
+
+So hostname fixed *scope* and introduced *fragility*. I checked the first
+property and not the second.
+
+### v3 — an environment variable, for hosts where hostname is unstable
+
+`ORCH_BENCHMARK_HOST=1` is both process-scoped and stable. It costs
+discoverability — it lives in a shell profile rather than in the project — and
+buys immunity to network conditions.
+
+Current state, and it is deliberately not uniform:
+
+| Host | Mechanism | Verdict |
+|---|---|---|
+| `Xenomorph9` (win32-x64, 32 cores, 63.7 GB) | marker file lists the hostname; a fixed machine name | ADMISSIBLE |
+| Mac (darwin-arm64, 14 cores, 24 GB) | `ORCH_BENCHMARK_HOST=1` in `~/.zshrc` | ADMISSIBLE |
+| `claude` (agent sandbox, 2 cores, 3.8 GB) | neither | **NOT ADMISSIBLE** |
+
+That third row is the point. A gate that admits everything is not a gate, and
+the check that matters is whether it **discriminates**, not whether it exists —
+the same standard `oracle.selftest.js` had to meet.
+
+### A disclosure correction
+
+I had suggested that since `.benchmark-host` cannot be committed, its
+*expected contents* should be recorded in the repo so a rebuilt machine could
+be restored.
+
+Wrong for the Mac. `shi-fnmy64ktm2.localdomain` is a corporate-managed machine
+name and this repo is headed for a public audience. The env-var route avoids
+writing anything identifying, which is a second reason to prefer it there.
+
+**The repo documents the mechanism. It does not enumerate the hosts.**
+
+### The pattern
+
+Three mechanisms, three flaws, one sitting. Every one was a correct solution
+to the problem as understood at the time, defeated by a property of the
+environment that had not yet been examined:
+
+1. a shared filesystem, so a file is not a machine
+2. a mutable hostname, so a name is not an identity
+3. a public repo, so a configuration value is not private
+
+The recurring shape, and it is the same one as the RSS corrections: **the
+mechanism was never wrong about what it measured. It was wrong about what that
+measurement meant in an environment nobody had checked.**

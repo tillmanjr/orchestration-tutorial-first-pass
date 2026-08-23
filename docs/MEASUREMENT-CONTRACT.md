@@ -1,4 +1,4 @@
-# Measurement Contract — v1.3 (frozen)
+# Measurement Contract — v1.4 (frozen)
 
 ---
 
@@ -181,9 +181,39 @@ reader has no way to tell a result from an artefact — and neither did we.
 benchmark host.** Every manifest carries `benchmark_admissible` and
 `admissibility_reason`.
 
-Opt-in is explicit — `ORCH_BENCHMARK_HOST=1`, or a `.benchmark-host` marker at
-the repo root. Nothing is auto-detected: "is this a real machine" has no
+Opt-in is explicit. Nothing is auto-detected: *"is this a real machine"* has no
 reliable test, and a wrong guess silently certifies numbers that mean nothing.
+
+Two mechanisms, and which one to use is a property of the host:
+
+| | Mechanism | Use when |
+|---|---|---|
+| **env** | `ORCH_BENCHMARK_HOST=1` | the hostname is unstable, or is identifying and the repo is public. Process-scoped and stable; costs discoverability. |
+| **marker** | a `.benchmark-host` file listing hostnames, one per line, searched upward from the repo root | the hostname is a fixed machine name. Keep the file **outside** the repo, where it cannot be committed. |
+
+Matching is case-insensitive. A line of `*` admits any host and exists only so
+that the failure mode is deliberate and greppable rather than accidental.
+
+**The marker keys on hostname, not on its own existence, and that is the whole
+mechanism.** The agent's sandbox reaches the operator's disk through a mount,
+so it can see the operator's marker file. A presence check would declare the
+sandbox admissible. A file answers a question about a *disk*; a hostname
+answers one about a *process*.
+
+But a hostname is not stable everywhere. macOS reports a DHCP-derived suffix —
+the same machine can be `host.localdomain` on one network and `host.local` on
+another — and if it shifts, the machine silently becomes inadmissible while
+looking exactly like the gate working correctly. Prefer the env var there.
+
+**The repo documents the mechanism and does not enumerate the hosts.** A
+hostname can be a corporate asset name, and this repo is public.
+
+### Verify it discriminates, not that it exists
+
+A gate that admits everything is not a gate. `node
+packages/harness/benchmark-host.js` prints the hostname, every path searched,
+the marker's contents, and the verdict. It must report NOT ADMISSIBLE on at
+least one machine you actually use, or it has not been tested.
 
 This exists because `MILESTONES.md` E8 — *the agent's sandbox never runs a
 benchmark* — was written down, accurate, and ignored. The first fan-out
@@ -305,6 +335,7 @@ costs a weekend.
 | Version | Date | Change |
 |---|---|---|
 | v1 | 2026-08-22 | Initial draft. |
+| v1.4 | 2026-08-22 | §5b: two admission mechanisms, and which to use is a property of the host. The marker keys on hostname because the agent sandbox sees the operator's disk through a mount; the env var exists because hostnames are unstable on macOS and identifying on managed machines. |
 | v1.3 | 2026-08-22 | §5a: the noise floor is a per-host measured quantity, not a project constant — observed 16–200% on a 2-core host against a documented 13%. Units reconciled. Added §5b, benchmark admissibility, after a fan-out benchmarked on the machine E8 forbids. |
 | v1.2 | 2026-08-22 | Added §5a, the noise floor: 13% single-run variance measured, and the rules that follow. §5 peak RSS is sampled before invariant checks, not after. |
 | v1.1 | 2026-08-22 | §5 corrected: RSS units vary by access path, not by platform alone. Node reports kilobytes everywhere; native code does not. Verified on win32-x64. |
