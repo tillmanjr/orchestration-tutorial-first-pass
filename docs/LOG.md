@@ -309,3 +309,43 @@ Recorded deliberately in this form. Treating a suggestive number as a result
 is the same error as the three RSS corrections above — the difference between
 a measurement and a number you happen to have is whether you can say what it
 excludes.
+
+### DISCOVERY — single-run variance is 13%, and it ate one of two "results"
+
+The RSS fix verified on darwin-arm64: `peak_rss_bytes` 140,427,264 against
+`rss_high_water_after_run_bytes` 140,378,112 — 48 KB apart, the object
+construction between the two sample points. Previously 45 MB.
+
+The more useful finding came free. Two cold runs on the **same machine, same
+input, same code**:
+
+    phase      run 1     run 2    spread
+    work      43.5 ms   49.1 ms    +13%
+    load      54.9 ms   61.5 ms    +12%
+    startup   13.9 ms   19.6 ms    +41%
+
+The observation filed above — M4 Pro apparently beating the i9 on `work`,
+43.5 ms against 50.3 ms — is a **14% gap against 13% single-run noise**. It
+was never a result. Run 2's 49.1 ms lands within 2.3% of the Windows figure.
+
+The `load` difference survives: 61.5 vs 79.6 ms is 23% against 12% noise.
+So of two apparent architecture differences, one is real and one was an
+artefact of running each machine once.
+
+Three consequences, all now binding:
+
+1. **No single-run comparison is admissible.** Every benchmark cell reports
+   `repeat` with the spread visible, and `work_warm_spread` exists so a
+   reader can see whether a difference clears the noise floor.
+2. **A difference must exceed the observed spread before it is called a
+   difference.** The comparison table in the final tutorial needs the noise
+   floor beside it, or every reader will do what I nearly did.
+3. **`startup_ns` at 41% spread is close to useless at this scale** and
+   should be reported as a distribution over many runs, or not compared at
+   all. It is excluded from every phase, so nothing depends on it — but it
+   should not be presented as though it means something.
+
+Filing the earlier comparison as an *observation* rather than a *finding* was
+correct, and this quantifies why. The discipline is cheap. The alternative is
+a tutorial asserting an architecture advantage that a second run would have
+falsified.

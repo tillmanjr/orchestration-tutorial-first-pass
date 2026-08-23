@@ -61,6 +61,23 @@ with their design consequences in `docs/MILESTONES.md`, Part 1.
 Neither is purely a tax. Together they are two of the three approval gates the
 tutorial is about, enforced by the environment rather than by discipline.
 
+## Where commands run
+
+This project spans two machines with different roles, and a command run on the
+wrong one either fails confusingly or — worse — succeeds and produces a result
+that means something else. **Every command in this repo and in the tutorials
+carries a machine tag.**
+
+| Tag | Machine | Why it matters |
+|---|---|---|
+| `[WINDOWS]` | x86-64, 64 GB | development, and the only machine that runs the `large` tier |
+| `[MAC]` | arm64, 24 GB | the demo target; second architecture for cross-platform checks |
+| `[BOTH]` | run on each | determinism and instrument checks, where agreement *is* the result |
+| `[SANDBOX]` | the agent's Linux VM | ~4 GB, never a benchmark (E8); verification of `tiny` only |
+
+`[BOTH]` is not a convenience. For M1 and M3 the point is comparing two
+outputs, so running on one machine produces no evidence at all.
+
 ## Two machines
 
 Windows / x86-64 / 64 GB for development and the `large` tier.

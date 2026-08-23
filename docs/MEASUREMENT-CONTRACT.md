@@ -120,6 +120,26 @@ back what you wrote so nothing is elided, and derive the unit from the ratio.
 Never assert a unit from documentation. A memory comparison built on an
 assumed unit is worse than no comparison, because it looks authoritative.
 
+## 5a. The noise floor
+
+Measured on darwin-arm64 at the tiny tier, two cold runs of identical work
+differed by **13% on `work`, 12% on `load` and 41% on `startup_ns`**.
+
+Three rules follow, and they bind every comparison in this project:
+
+- **A single run is not a measurement.** `repeat` is mandatory for anything
+  that will be compared, and `work_warm_spread` is reported so the noise is
+  visible rather than averaged away.
+- **A difference must exceed the observed spread before it is reported as a
+  difference.** An early cross-architecture comparison showed a 14% gap on
+  `work` against a 13% noise floor — it survived exactly one additional run.
+- **`startup_ns` is not compared at this scale.** At 41% spread it carries no
+  signal. It is recorded because it is a real language difference for CLI
+  workloads, and excluded from every phase so that nothing depends on it.
+
+Any published comparison carries its noise floor beside it. Without that, a
+reader has no way to tell a result from an artefact — and neither did we.
+
 ## 6. Job spec — into the process
 
 ```json
@@ -226,4 +246,5 @@ costs a weekend.
 | Version | Date | Change |
 |---|---|---|
 | v1 | 2026-08-22 | Initial draft. |
+| v1.2 | 2026-08-22 | Added §5a, the noise floor: 13% single-run variance measured, and the rules that follow. §5 peak RSS is sampled before invariant checks, not after. |
 | v1.1 | 2026-08-22 | §5 corrected: RSS units vary by access path, not by platform alone. Node reports kilobytes everywhere; native code does not. Verified on win32-x64. |
