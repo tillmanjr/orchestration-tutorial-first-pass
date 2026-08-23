@@ -138,6 +138,24 @@ since a benchmark run on a shared virtualised host is not a measurement.
 Exit criteria are mechanical. If you cannot run a command that answers yes or
 no, it is not an exit criterion.
 
+## Status
+
+| | Milestone | Status | Evidence |
+|---|---|---|---|
+| **M0** | Contracts drafted, repo bridged | **met** | clone on darwin-arm64 reproduces the tree; `git status` clean on both |
+| **M1** | Instrument verified | **met** | `results/instrument/rss-probe.node.{win32-x64,darwin-arm64}.json` — and it falsified the contract, see LOG 2026-08-22 |
+| **M2** | Walking skeleton green | **met** | `builtin` cell sorts A/B/C at tiny in both load modes; I1–I3 pass under independent oracle verification; manifests emitted with phases, cold/warm and RSS |
+| **M3** | Determinism across platforms | **met** | `results/determinism/tier-tiny.json`; byte-identical on linux-x64, win32-x64, darwin-arm64. Re-check with `node packages/generator/verify-determinism.js` |
+| **M4** | Contracts frozen; boundary written | not started | |
+| **M5** | First fan-out — the JS row | not started | |
+| **M6** | Second runtime — the Rust row | not started | |
+| **M7** | Zip and merge | not started | |
+| **M8** | Synthesis, gated | not started | |
+
+Status is recorded here and nowhere else. A milestone is *met* only when its
+exit command has been run on every platform the criterion names — not when
+the code that would satisfy it exists.
+
 ## M0 · Contracts drafted, repo bridged
 
 **Entry** Two machines; node and cargo on both; a GitHub account.
@@ -231,6 +249,14 @@ and executed; every performance claim has been regenerated from committed
 manifests rather than written from an agent's recollection.
 **Lesson** Prose has no oracle, so the gate must be mechanical. An ungated
 synthesis stage produces a confident, plausible, wrong tutorial.
+
+> **Correction.** M8 as originally written treats synthesis as a single final
+> step. That is wrong for an ordered *set* of tutorials: it would mean
+> reconstructing several tutorials' worth of reasoning from a git log months
+> later, which is precisely the failure this milestone prohibits for
+> performance claims. Each tutorial is written as its own material completes.
+> M8 is therefore a recurring gate applied per tutorial, not a phase at the
+> end. See `TUTORIAL-PLAN.md`.
 
 ---
 

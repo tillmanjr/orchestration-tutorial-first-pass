@@ -1,0 +1,68 @@
+{
+  "contract": 1,
+  "kind": "determinism-reference",
+  "note": "Expected output of the generator. M3's exit criterion. Regenerate with packages/generator/verify-determinism.js, never by hand.",
+  "tier": "tiny",
+  "seed": 20260822,
+  "spec_version": "1.2",
+  "parameters": {
+    "l1_per_dataset": 10000,
+    "fanout_l2": [
+      1,
+      6
+    ],
+    "fanout_l3": [
+      1,
+      8
+    ],
+    "target_overlap_ab": 0.7,
+    "target_match_rate_c": 0.6
+  },
+  "files": {
+    "A.tsv": {
+      "sha256": "be12b703b04eeab898fdaa4d04d9f9392b54531ad4e6fad54c01311be43832d4",
+      "records": 158723,
+      "l2_nodes": 35292
+    },
+    "B.tsv": {
+      "sha256": "3008dfaa0e6e7642819ccaa01d655040383185b52ac24733c0210843762bda47",
+      "records": 157425,
+      "l2_nodes": 34943
+    },
+    "C.tsv": {
+      "sha256": "2fd39cae2dec6fbb9ad53ebe17e20c32c34aff0d8ce02f6a8c04de6be0a2def5",
+      "records": 158286,
+      "l2_nodes": 35114
+    }
+  },
+  "key_relationships": {
+    "intersect_ab": 7000,
+    "overlap_ab": 0.7,
+    "overlap_ab_ok": true,
+    "c_l2_matched": 20868,
+    "c_l2_reserve": 14246,
+    "c_l2_rejection_fallbacks": 0,
+    "match_rate_c": 0.594293,
+    "match_rate_c_ok": true
+  },
+  "confirmed_on": [
+    {
+      "platform": "linux-x64",
+      "runtime": "node 22.23.2",
+      "role": "agent sandbox, not a target platform",
+      "date": "2026-08-22"
+    },
+    {
+      "platform": "win32-x64",
+      "runtime": "node 24.6.0",
+      "role": "development, large tier",
+      "date": "2026-08-22"
+    },
+    {
+      "platform": "darwin-arm64",
+      "runtime": "node 24.15.0",
+      "role": "demo",
+      "date": "2026-08-22"
+    }
+  ]
+}

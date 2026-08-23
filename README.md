@@ -31,17 +31,19 @@ agents, and it is the reason this problem was chosen over any other.
 | `docs/MILESTONES.md` | The environment preconditions this was built inside, and every checkpoint with a mechanically checkable exit criterion. **Start here.** |
 | `docs/DATASET-SPEC.md` | The data: shape, key overlaps, PCG32 determinism, tiers, collation, and the seven invariants. |
 | `docs/MEASUREMENT-CONTRACT.md` | How anything is allowed to be measured: phases, clocks, cold/warm, peak RSS, job spec and manifest schemas, the work matrix. |
+| `docs/LOG.md` | Dated decisions, discoveries, corrections and failures, written the day they happened. The raw material the finished tutorial is assembled from — see M8. |
 
 Both contracts are drafts and freeze at milestone M4. Argue with them now.
 
 ## Layout
 
-    docs/                 contracts, milestones, and tutorial modules
+    docs/                 contracts, milestones, working log
     packages/generator/   deterministic seeded dataset generator (JS)
     packages/oracle/      invariant checks — the verification gate
     packages/js-sorts/    JS implementations, the reference tier
     packages/harness/     rss-probe, differential runner, benchmark driver
     crates/               Rust implementations (from M6)
+    results/              committed evidence: probe output, determinism refs
     data/                 generated, gitignored, reproducible from a seed
 
 ## Working constraints

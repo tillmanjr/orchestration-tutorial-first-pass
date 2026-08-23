@@ -141,22 +141,40 @@ objects (≈8–12 GB resident) meets Node's old-space ceiling. That wall is a
 
 ## 6. Sort tasks
 
-| Dataset | Key | Comparator |
-|---|---|---|
-| `A` | `L1` | numeric ascending |
-| `B` | `L1` | numeric ascending |
-| `C` | `L2` | numeric ascending; ties by `L1`, then `l3ord` |
+Each comparator is a **total order**. `(L1, L2, l3ord)` uniquely identifies a
+record within a dataset, so a correct sort has exactly one valid output and
+invariant I3 is decisive.
+
+| Dataset | Primary | Tie-break 1 | Tie-break 2 |
+|---|---|---|---|
+| `A` | `L1` numeric asc | `L2` byte-wise asc | `l3ord` numeric asc |
+| `B` | `L1` numeric asc | `L2` numeric asc | `l3ord` numeric asc |
+| `C` | `L2` numeric asc | `L1` byte-wise asc | `l3ord` numeric asc |
+
+> **Correction, v1.1.** v1 of this document asked instead for sorts to be
+> *stable with respect to `l3ord`*. That was incoherent. Stability preserves
+> **input** order, and the input is deliberately shuffled — so a stable sort
+> of shuffled data has no unique expected output, and there would be nothing
+> for I3 to check against. Requiring a total order is what makes the result
+> verifiable at all. The error was caught while writing the oracle, which is
+> the argument for building the checker before the implementations rather
+> than after.
 
 **All string comparison is byte-wise over UTF-8. Never locale collation.** In
-JS that means `<` / `>`, never `localeCompare`; in Rust, `str::cmp`. Stated
-because locale collation is the classic silent cross-language divergence — two
-implementations both "sorted correctly" and disagreeing on where `Z` sits
-relative to `a`.
+JS that means `<` / `>`, never `localeCompare`; in Rust, `str::cmp`.
 
-Sorts are **stable** with respect to `l3ord` within an equal key, so the
-permutation check below has a unique expected answer.
+This is not a stylistic preference, and `C` is built to prove it. Its level-1
+keys carry the prefixes `ND`, `Nd`, `nD`, `nd` in near-equal proportion, and
+ties on `L2` are common because 60% of those values are drawn from a shared
+pool. Byte order puts every uppercase letter before every lowercase one;
+ICU collation treats case as a tertiary difference and orders them roughly
+the other way.
 
----
+Measured on the tiny tier: sorting `C` with `localeCompare` on the tie-break
+produces **4,851 inversions** — while I2 passes, because every record is
+present and unmutated. The output is complete, plausible, and wrong. That is
+the failure this rule exists to prevent, and it is the reason a sortedness
+check on its own is not sufficient evidence.
 
 ## 7. Invariants — the verification gate
 
@@ -197,8 +215,128 @@ identically.
 
 ---
 
-## 9. Change control
+## 9. Reference generation algorithm (normative)
+
+Sections 1–8 describe what the data *is*. This section describes exactly how
+it is produced, because two implementations agreeing on the shape of the data
+is not the same as producing identical bytes — and identical bytes is what M3
+and M6 check.
+
+**This section is normative.** A port that follows sections 1–8 but not this
+one will generate valid-looking data with different hashes, and the
+divergence will be indistinguishable from a PRNG bug.
+
+### 9.1 Streams and draw order
+
+Determinism depends on the *order* of draws, not only on the generator. Each
+dataset draws from its own stream, in exactly this sequence:
+
+1. Level-1 keys are built (no draws), then Fisher–Yates shuffled: for
+   `i` from `n-1` down to `1`, `j = bounded(i+1)`, swap.
+2. For each parent `p` in `0..n-1`:
+   a. `kids = range(1, 6)`
+   b. per-dataset parent context, if any (`B` draws its L2 base here)
+   c. for each child `c` in `0..kids-1`: the L2 key material, then
+      `leaves = range(1, 8)`
+
+Per-dataset L2 key material, drawn at step 2c:
+
+| Dataset | Draws | L2 value |
+|---|---|---|
+| `A` | one `next()` | `t{c}-{TAGS[draw & 15]}` |
+| `B` | none (base drawn at 2b as `range(1000, 2^29)`) | `base + c` |
+| `C` | see 9.2 | int64 |
+
+### 9.2 C's level-2 selection
+
+For each child, up to 8 attempts; each attempt draws `bounded(100)` and then
+one further draw:
+
+- if `bounded(100) < 60`: `union[bounded(|union|)]`, where `union` is the
+  concatenation of A's level-1 keys then B's non-shared level-1 keys, **in
+  unshuffled construction order**
+- otherwise: `intKey(C_RESERVE, bounded(4n))`
+
+An attempt is accepted if the value is not already used by this parent.
+After 8 failed attempts, fall back to `intKey(C_RESERVE, 4n + 8p + c)`, which
+is unique by construction. The manifest reports fallback count; it is 0 at
+every tier tested so far.
+
+### 9.3 Emission order
+
+A true shuffle would require holding every record — roughly 1.6 GB of strings
+at the large tier — and bucket files would leave temporaries that cannot be
+deleted under precondition E3. Instead, emission walks a bijection over the
+global leaf index:
+
+    bits  = smallest k such that 2^k >= T        (T = total leaves)
+    mask  = 2^bits - 1
+    perm(x):
+        v = (x * 0x9E3779) & mask                 // low 32 bits via imul, then mask
+        v = (v ^ ((v >>> max(1, bits >> 1)) & mask)) & mask
+        return v
+
+Iterate `x` from `0` to `2^bits - 1`; skip any `perm(x) >= T`; otherwise emit
+leaf `perm(x)`. Multiplication by an odd constant modulo a power of two is a
+bijection, and xor-shift-right is a bijection on fixed width, so each leaf is
+emitted exactly once.
+
+**What this guarantees and what it does not.** It guarantees every leaf
+exactly once, in an order uncorrelated with the sort keys, in constant memory.
+It is *not* a uniform random permutation — it is one fixed permutation
+determined by `T`. That is sufficient here: the requirement is that the input
+contain no exploitable order. Measured at the tiny tier, the longest ascending
+run in A's emitted key order is **8 of 158,723**, so a run-detecting sort such
+as TimSort finds nothing to use.
+
+A global leaf index is resolved back to a record by binary search over the
+cumulative leaf offsets of the level-2 nodes: the largest node index whose
+cumulative start is `<= g`, with `l3ord = g - cumulativeStart`.
+
+### 9.4 Padding
+
+The pad is **not** generated per leaf. Drawing 48 characters per record would
+cost roughly 760 million PRNG draws at the large tier and would dominate
+generation entirely.
+
+Construction, once per run, from stream `PAD` (11):
+
+    ring = 65536 + 48 characters drawn as ALPHABET[bounded(62)]
+    pool[i] = ring[i .. i+48]           for i in 0..65535
+
+    ALPHABET = A-Z a-z 0-9   (in that order, 62 characters)
+
+Selection, per leaf:
+
+    padIndex = mix32(g ^ SALT[ds]) & 65535
+
+    SALT = { A: 0x9E3779B1, B: 0x85EBCA77, C: 0xC2B2AE3D }
+
+    mix32(x):                                   // murmur3 finalizer
+        h = x
+        h = (h ^ (h >>> 16)) * 0x85EBCA6B        // low 32 bits
+        h = (h ^ (h >>> 13)) * 0xC2B2AE35        // low 32 bits
+        return (h ^ (h >>> 16)) >>> 0
+
+Two details that are not optional. **The salt** stops the nth record of A, B
+and C sharing a pad — harmless in itself, but it reads as a bug at exactly the
+moment you need to trust the generator. **The murmur3 finalizer** replaced a
+single multiply-and-shift, which over consecutive indices produced a lattice
+rather than a spread and left a third of the pool unused (46,351 distinct pads
+where a uniform hash gives ~59,700; now 59,772).
+
+This is sound because the pad carries no information and nothing joins on it.
+Datastrings stay unique because `ds|l1|l2|l3ord` already is, so I2 is
+unaffected. And V8 does not intern strings produced by slicing at runtime, so
+each record's pad is still a distinct object — the memory pressure the pad
+exists to create is real, which is the justification for pooling at all.
+
+---
+
+## 10. Change control
 
 | Version | Date | Change |
 |---|---|---|
 | v1 | 2026-08-22 | Initial draft. |
+| v1.1 | 2026-08-22 | §6: comparators are total orders; the stability requirement was incoherent against shuffled input. Collation trap quantified against the tiny tier. |
+| v1.2 | 2026-08-22 | Added §9, the normative generation algorithm. Draw order, C's L2 selection, the emission bijection, and the pad pool were implemented but undocumented — a port written from §§1–8 alone would have produced valid data with different hashes. |
