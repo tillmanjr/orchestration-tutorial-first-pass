@@ -146,7 +146,7 @@ no, it is not an exit criterion.
 | **M1** | Instrument verified | **met** | `results/instrument/rss-probe.node.{win32-x64,darwin-arm64}.json` — and it falsified the contract, see LOG 2026-08-22 |
 | **M2** | Walking skeleton green | **met** | `builtin` cell sorts A/B/C at tiny in both load modes; I1–I3 pass under independent oracle verification; manifests emitted with phases, cold/warm and RSS |
 | **M3** | Determinism across platforms | **met** | `results/determinism/tier-tiny.json`; byte-identical on linux-x64, win32-x64, darwin-arm64. Re-check with `node packages/generator/verify-determinism.js` |
-| **M4** | Contracts frozen; boundary written | not started | |
+| **M4** | Contracts frozen; boundary written | **met** | `DATASET-SPEC` and `MEASUREMENT-CONTRACT` frozen at v1.2; `BOUNDARY.md` v1. Rollback baseline: git tag `pre-freeze` |
 | **M5** | First fan-out — the JS row | not started | |
 | **M6** | Second runtime — the Rust row | not started | |
 | **M7** | Zip and merge | not started | |

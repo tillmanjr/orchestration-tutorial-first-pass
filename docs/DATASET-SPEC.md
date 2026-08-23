@@ -1,6 +1,25 @@
-# Dataset Specification — v1 (draft)
+# Dataset Specification — v1.2 (frozen)
 
-**Freezes at the start of Module 02.** After that, a change is an event: bump
+---
+
+> ## FROZEN — v1.2, 2026-08-22, at milestone M4
+>
+> Frozen does not mean correct, and it does not mean unchangeable. It means
+> **a change is now an event**: bump the version, stop every agent building
+> against this document, and restart them against the new one.
+>
+> This document was corrected twice in the two hours before freezing, and
+> every correction came from *using* it rather than from reviewing it. That is
+> the expected failure rate for a specification nobody has built against yet,
+> and it is the reason freezing happens after the walking skeleton rather than
+> before it.
+>
+> Baseline for rollback: git tag `pre-freeze`.
+
+---
+
+
+**Frozen.** See the stamp above. After that, a change is an event: bump
 the version and stop every agent building against it.
 
 Defined precisely enough that any implementation — JS, Rust, C++ — reproduces

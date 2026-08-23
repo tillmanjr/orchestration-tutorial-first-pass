@@ -1,6 +1,25 @@
-# Measurement Contract — v1 (draft)
+# Measurement Contract — v1.2 (frozen)
 
-**Freezes with the dataset spec at the start of Module 02.**
+---
+
+> ## FROZEN — v1.2, 2026-08-22, at milestone M4
+>
+> Frozen does not mean correct, and it does not mean unchangeable. It means
+> **a change is now an event**: bump the version, stop every agent building
+> against this document, and restart them against the new one.
+>
+> This document was corrected twice in the two hours before freezing, and
+> every correction came from *using* it rather than from reviewing it. That is
+> the expected failure rate for a specification nobody has built against yet,
+> and it is the reason freezing happens after the walking skeleton rather than
+> before it.
+>
+> Baseline for rollback: git tag `pre-freeze`.
+
+---
+
+
+**Frozen.** See the stamp above.
 
 This is not a study of whether JavaScript should call Rust. It is a study of
 what each language and runtime costs and buys for this shape of work.
