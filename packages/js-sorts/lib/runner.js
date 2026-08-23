@@ -8,7 +8,9 @@
 // algorithm. See MEASUREMENT-CONTRACT §1.
 
 import { writeFileSync, mkdirSync, readFileSync } from 'node:fs';
-import { dirname, isAbsolute } from 'node:path';
+import { dirname, isAbsolute, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { hostname } from 'node:os';
 import os from 'node:os';
 import { load } from './load.js';
 import { checkI1, checkI2, checkI3, digest } from '../../oracle/invariants.js';
@@ -84,17 +86,51 @@ function validateSpec(job, impl) {
 // than leaving a reader to infer it from the platform block.
 
 function benchmarkAdmissibility() {
+  // 1. Process-scoped opt-in. Always wins, because an environment variable
+  //    belongs to the process rather than to any filesystem.
   if (process.env.ORCH_BENCHMARK_HOST === '1') {
-    return { admissible: true, reason: 'ORCH_BENCHMARK_HOST=1' };
+    return { admissible: true, reason: 'ORCH_BENCHMARK_HOST=1', host: hostname() };
   }
-  try {
-    const marker = new URL('../../../.benchmark-host', import.meta.url);
-    readFileSync(marker);
-    return { admissible: true, reason: '.benchmark-host marker present at repo root' };
-  } catch { /* absent */ }
+
+  // 2. Marker file listing admissible HOSTNAMES, searched upward from the
+  //    repo root.
+  //
+  //    The hostname check is not belt-and-braces -- it is the whole mechanism.
+  //    The agent sandbox reaches the operator's disk through a mount, so it
+  //    sees the operator's files. A bare marker file would therefore declare
+  //    the sandbox a benchmark host, restoring exactly the failure the gate
+  //    exists to prevent. A file cannot answer "which machine is executing"
+  //    when the filesystem is shared; a hostname can.
+  //
+  //    Format: one hostname per line, # for comments. A line of `*` makes any
+  //    host admissible and exists only so the failure mode is deliberate and
+  //    greppable rather than accidental.
+  // Hostnames are case-insensitive by convention, and Windows reports casing
+  // inconsistently across contexts. Match lowercased or 'Xenomorph9' silently
+  // fails against 'xenomorph9' with a message that looks like a missing entry.
+  const here = hostname().toLowerCase();
+  let dir = dirname(fileURLToPath(new URL('../../../package.json', import.meta.url)));
+  for (let up = 0; up < 3; up++) {
+    const candidate = join(dir, '.benchmark-host');
+    try {
+      const lines = readFileSync(candidate, 'utf8')
+        .split('\n').map((l) => l.trim().toLowerCase())
+        .filter((l) => l && !l.startsWith('#'));
+      if (lines.includes('*')) return { admissible: true, reason: `${candidate} allows any host (*)`, host: here };
+      if (lines.includes(here)) return { admissible: true, reason: `${candidate} lists this host`, host: here };
+      return {
+        admissible: false,
+        host: here,
+        reason: `found ${candidate} but it does not list this host ('${here}'). Listed: ${lines.join(', ') || '(empty)'}`,
+      };
+    } catch { /* not here; walk up */ }
+    dir = dirname(dir);
+  }
+
   return {
     admissible: false,
-    reason: 'no benchmark-host opt-in (set ORCH_BENCHMARK_HOST=1 or create .benchmark-host at the repo root). Timings recorded but NOT admissible as measurements -- see MILESTONES.md E8.',
+    host: here,
+    reason: `no benchmark-host opt-in for '${here}'. Set ORCH_BENCHMARK_HOST=1, or add this hostname to a .benchmark-host file at or above the repo root. Timings recorded but NOT admissible as measurements -- see MILESTONES.md E8.`,
   };
 }
 
@@ -271,6 +307,7 @@ export function runCell(job, impl) {
     // unless this is true. Correctness results are unaffected.
     benchmark_admissible: ADMISSIBLE.admissible,
     admissibility_reason: ADMISSIBLE.reason,
+    admissibility_host: ADMISSIBLE.host,
 
     summary_ns: {
       work_cold: workNs[0],
