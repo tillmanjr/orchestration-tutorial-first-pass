@@ -13,7 +13,8 @@
 
 import { spawnSync } from 'node:child_process';
 import { writeFileSync, mkdtempSync, existsSync, readFileSync, rmSync } from 'node:fs';
-import { join, resolve, basename } from 'node:path';
+import { join, resolve, basename, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { tmpdir } from 'node:os';
 import { createHash } from 'node:crypto';
 
@@ -29,6 +30,13 @@ if (!cell) { console.error('usage: run.js <cell.js> [--data data/tiny] [--algori
 // test. Found by the first agent to add a second cell, which is the cheapest
 // possible moment for it to be found.
 const ALGORITHM = opt('--algorithm', basename(cell).replace(/\.[^.]+$/, ''));
+
+// Resolved from THIS FILE, never from process.cwd(). An earlier version used
+// resolve('results/...'), so the suite's verdict depended on which directory
+// you were standing in -- proven by running it from /tmp, where C10 failed
+// while the cell was unchanged. A gate whose answer moves with the shell is
+// not a gate.
+const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 
 const work = mkdtempSync(join(tmpdir(), 'orch-conformance-'));
 const results = [];
@@ -54,6 +62,11 @@ function check(id, why, fn) {
   catch (e) { detail = `threw: ${e.message}`; }
   results.push({ id, why, pass, detail });
 }
+
+// Dataset is a parameter, not a constant. An earlier version hardcoded 'C'
+// everywhere, so A's string level-2 tie-break and B's all-numeric order were
+// never exercised by the gate that admits cells into the matrix.
+const DATASETS = ['A', 'B', 'C'];
 
 const baseSpec = (over = {}) => ({
   contract: 1,
@@ -166,17 +179,60 @@ check('C9', 'repeat: 2 -> memory_measurement_valid false', () => {
   return true;
 });
 
-// --- C10 output matches the declared total order -------------------------
-check('C10', 'sorted output matches the committed reference hash', () => {
-  const refPath = resolve('results/determinism/sorted-tiny.json');
-  if (!existsSync(refPath)) return 'no committed reference (results/determinism/sorted-tiny.json)';
-  const ref = JSON.parse(readFileSync(refPath, 'utf8'));
-  const out = join(work, 'c10.tsv');
-  const r = runCell(baseSpec({ output: { path: out, emit: true } }));
+// --- C10/C11 every dataset, every load mode, against the reference --------
+//
+// Three datasets because their orders differ in kind: A ties on a byte-wise
+// string, B is entirely numeric, C's primary key is numeric with a string
+// tie-break. A gate that only ever sorts one of them admits cells that cannot
+// sort the others.
+//
+// Both load modes because BOUNDARY §2 devotes a clause and a v1.1 amendment
+// to load_mode, and the gate previously never set it -- so a cell with a
+// broken soa path passed every case.
+
+function referenceHashes() {
+  const refPath = join(REPO, 'results', 'determinism', 'sorted-tiny.json');
+  return JSON.parse(readFileSync(refPath, 'utf8')).files;
+}
+
+for (const mode of ['aos', 'soa']) {
+  check(mode === 'aos' ? 'C10' : 'C11',
+    `sorted output matches the committed reference, all datasets, load_mode=${mode}`, () => {
+      let refs;
+      try { refs = referenceHashes(); }
+      catch { return `no committed reference at ${join(REPO, 'results', 'determinism', 'sorted-tiny.json')}`; }
+      const bad = [];
+      for (const ds of DATASETS) {
+        const out = join(work, `${ds}.${mode}.tsv`);
+        const r = runCell(baseSpec({
+          inputs: [{ dataset: ds, path: join(DATA, `${ds}.tsv`) }],
+          load_mode: mode,
+          output: { path: out, emit: true },
+        }));
+        if (r.status !== 0) { bad.push(`${ds}: exit ${r.status}`); continue; }
+        const got = createHash('sha256').update(readFileSync(out)).digest('hex');
+        const want = refs[`${ds}.sorted.tsv`]?.sha256;
+        if (got !== want) bad.push(`${ds}: sha256 ${got.slice(0, 12)} != ${String(want).slice(0, 12)}`);
+      }
+      return bad.length ? bad.join('; ') : true;
+    });
+}
+
+// --- C12 threads: 1 ------------------------------------------------------
+//
+// BOUNDARY §5 listed this case from the start and the suite never implemented
+// it -- the document described a gate that did not exist. Every algorithm
+// must support single-threaded operation, including cells that default to
+// parallel.
+check('C12', 'threads: 1 -> exit 0 with correct output (mandatory for every algorithm)', () => {
+  const out = join(work, 'threads1.tsv');
+  const r = runCell(baseSpec({ threads: 1, output: { path: out, emit: true } }));
   if (r.status !== 0) return `exit ${r.status} (expected 0)`;
+  if (r.manifest?.impl?.threads !== 1) return `manifest reports threads=${r.manifest?.impl?.threads}`;
+  let refs;
+  try { refs = referenceHashes(); } catch { return 'no committed reference'; }
   const got = createHash('sha256').update(readFileSync(out)).digest('hex');
-  const want = ref.files?.['C.sorted.tsv']?.sha256;
-  if (got !== want) return `sha256 ${got.slice(0, 16)} != reference ${String(want).slice(0, 16)}`;
+  if (got !== refs['C.sorted.tsv']?.sha256) return 'output differs from reference when forced single-threaded';
   return true;
 });
 

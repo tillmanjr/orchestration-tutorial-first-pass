@@ -200,7 +200,12 @@ export function runCell(job, impl) {
 
     let sorted;
     try {
-      sorted = impl.algorithm(loaded);
+      // Cells get a note channel. BOUNDARY §3 requires a value a cell cannot
+      // produce to be null "with a line in notes", but algorithm() returned
+      // only a loaded object -- so a cell had no way to write one. Reported by
+      // two verifiers independently, on a parallel cell that silently clamped
+      // its own thread count.
+      sorted = impl.algorithm(loaded, { note: (m) => notes.push(String(m)) });
     } catch (e) {
       throw new BoundaryError(3, 'work', e.code ?? 'EWORK', e.message);
     }
@@ -346,7 +351,10 @@ export function main(impl) {
       threads: impl.threads ?? 1,
       load_mode: opt('--load-mode', 'aos'),
       output: output ? { path: output, emit: true } : { path: null, emit: false },
-      repeat: Number(opt('--repeat', '3')),
+      // BOUNDARY §2 documents the default as 1. The CLI defaulted to 3, so
+      // anyone running a cell by hand silently got memory_measurement_valid:
+      // false and never saw why.
+      repeat: Number(opt('--repeat', '1')),
     };
   }
 

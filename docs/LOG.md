@@ -698,3 +698,66 @@ environment that had not yet been examined:
 The recurring shape, and it is the same one as the RSS corrections: **the
 mechanism was never wrong about what it measured. It was wrong about what that
 measurement meant in an environment nobody had checked.**
+
+### FINDING — two variances, and the project was reporting the smaller one
+
+`noise-probe` was built to make §5a's floor a measured per-host quantity
+rather than a constant. It found something more useful than a number.
+
+`work_warm_spread` measures variance **inside one invocation**, where page
+cache, JIT state and allocator arena are all held constant. But cells are
+compared **across** invocations — each cell is its own process, launched
+separately. None of those things are constant between two cells being
+compared.
+
+So the governing floor for any cell-vs-cell comparison is between-process
+variance, and nothing had measured it. On the agent sandbox, 8 invocations of
+identical work:
+
+    within-process   median 16.9%   (range 0.1% - 79.3%)
+    between-process         22.3%
+    between (load)          40.3%
+
+Within-process variance flatters the instrument. An invocation that happens to
+land on a warm cache reports 0.1% spread and looks precise — and the same
+workload in the next process is 22% away. Reporting that 0.1% as the
+measurement's precision would be true and completely misleading.
+
+The floor is now the larger of the two, and a host with no `noise-probe`
+result has no floor and therefore cannot host a comparison. Contract v1.5.
+
+This is the same shape as everything else today: the figure was correct about
+what it measured and wrong about what it meant — here, wrong about *which
+comparison it was licensing*. §5a said "a difference must exceed the observed
+spread" and never asked observed under what conditions.
+
+### CORRECTION — four conformance defects fixed, gate now 12 cases
+
+All confirmed by running them, all fixed:
+
+- **cwd-dependence.** C10 resolved its reference with `resolve('results/...')`,
+  so the gate's verdict depended on the working directory — proven by running
+  it from `/tmp`, where it failed while the cell was unchanged. Now resolved
+  from the script's own location. Re-verified: identical result from the repo
+  root and from `/tmp`.
+- **Single dataset.** Every case hardcoded `C`. A's byte-wise string tie-break
+  and B's all-numeric order were never exercised by the gate that admits cells
+  into the matrix. C10 and C11 now cover all three datasets.
+- **`soa` never exercised.** `load_mode` was hardcoded to `aos`, so a cell with
+  a broken `soa` path passed every case. C11 covers it.
+- **A documented case that did not exist.** BOUNDARY §5 listed `threads: 1`
+  from the start; the suite never implemented it. Now C12 — and it matters most
+  for the parallel cell, which must run single-threaded on request.
+
+Two runner defects fixed alongside:
+
+- `--repeat` defaulted to 3 while BOUNDARY documents 1, so anyone running a
+  cell by hand silently got `memory_measurement_valid: false` and no
+  explanation.
+- **Cells had no way to write to `notes`.** BOUNDARY §3 requires a value a cell
+  cannot produce to be `null` "with a line in `notes`", but `algorithm()`
+  returned only a loaded object. Reported independently by two verifiers, on a
+  parallel cell that silently clamped its own thread count with no channel to
+  say so. `algorithm()` now receives a note callback.
+
+All five cells pass all 12 cases.

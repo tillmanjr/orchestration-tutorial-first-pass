@@ -1,4 +1,4 @@
-# Measurement Contract — v1.4 (frozen)
+# Measurement Contract — v1.5 (frozen)
 
 ---
 
@@ -159,6 +159,45 @@ differed by **13% on `work`, 12% on `load` and 41% on `startup_ns`**.
 > Also corrected: the rule "a difference must exceed the observed spread"
 > compared a spread in milliseconds against a floor quoted in percent. Both
 > are now expressed as a **fraction of `work_warm_min`**.
+
+### v1.5 — there are two variances, and the project was reporting the smaller
+
+Building `noise-probe` surfaced a distinction v1.2 through v1.4 never made:
+
+| | What it measures | Held constant |
+|---|---|---|
+| **within-process** | spread across warm repeats inside ONE invocation — this is `work_warm_spread` | page cache, JIT state, allocator arena |
+| **between-process** | movement of `work_warm_min` itself across SEPARATE invocations | nothing |
+
+**Cells are compared across process invocations.** Each cell is its own
+process, launched separately, possibly minutes apart. None of the things
+within-process variance holds constant are constant between two cells being
+compared — so **between-process variance is the floor that actually governs a
+cell-vs-cell comparison**, and it is not what the project was reporting.
+
+Measured on the agent sandbox, 8 invocations × repeat 3, dataset C at tiny:
+
+    within-process   median 16.9%   (range 0.1% - 79.3%)
+    between-process         22.3%   work_warm_min moved 45.0ms -> 55.1ms
+    between (cold)          18.9%
+    between (load)          40.3%
+
+Within-process flatters the instrument. A run that happens to land on a warm
+cache reports a 0.1% spread and looks like a precise measurement; the same
+workload in the next process is 22% away.
+
+**The resolution floor is the larger of the two.** A comparison has to clear
+whichever noise it is actually exposed to.
+
+### The rule, restated
+
+    A difference between two cells is reportable only if it exceeds
+    resolution_floor_frac of the smaller figure. Below that, it is not a
+    difference.
+
+`resolution_floor_frac` comes from `results/instrument/noise-probe.node.<platform>-<arch>.json`
+for the host the comparison was made on. **A host with no noise-probe result
+has no floor, and therefore cannot host a comparison.**
 
 Three rules follow, and they bind every comparison in this project:
 
