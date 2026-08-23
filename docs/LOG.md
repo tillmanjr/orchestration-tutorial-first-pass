@@ -229,3 +229,83 @@ the same function the oracle checks with would make I3 vacuous — it would only
 ever confirm that a function agrees with itself. The cells implement the
 declared order independently, and that independence is what gives the check
 its value.
+
+### CORRECTION — the memory figure was wrong a third time, and the third was introduced by the second's fix
+
+Running the control cell on win32-x64 produced a manifest with two numbers
+that should have been nearly equal and were not:
+
+    peak_rss_bytes                    177,741,824   (170 MB)
+    rss_high_water_after_run_bytes    125,091,840   (119 MB)
+
+Nothing runs between them except the invariant checks — and `digest()` walks
+the full record set twice while `checkI1` and `checkI3` walk it again. So
+**52 MB of oracle cost was being reported as the cell's memory use.** The
+figure would have varied with the checker rather than with the cell, and a
+cell whose output happened to be more expensive to verify would have looked
+memory-hungry.
+
+Fixed by sampling peak RSS immediately after the last run's phases and before
+any check. The two figures now agree exactly.
+
+### The pattern is the finding
+
+The same failure has now occurred three times on the same quantity:
+
+1. **Units assumed from documentation.** Caught by building `rss-probe`
+   before taking any measurement. Node normalises to kilobytes; native code
+   does not.
+2. **Process-lifetime reported as per-run.** Caught by reading a manifest and
+   noticing a number that only ever rose across identical work.
+3. **The verifier's allocations counted as the subject's.** Caught by the
+   operator running the cell and two fields in one manifest disagreeing.
+
+Every instance produced a number that was *precise, reproducible, and
+labelled correctly according to its own code* — and meant something other
+than what a reader would assume. None was a bug in the sense of a crash or a
+wrong calculation.
+
+**And the third was introduced by the fix for the second.** Moving the sample
+point to solve one scoping error created another, because the label
+`peak_rss_bytes` stayed the same while the boundary it described moved.
+
+The lesson for T1 is therefore stronger than "verify your instrument once
+before you start". A measurement's meaning is set by *where its boundary
+falls*, that boundary moves whenever the surrounding code changes, and the
+name never moves with it. `peak_rss_includes` is now an explicit field in the
+manifest for exactly this reason: the scope is recorded next to the number
+rather than left to be inferred from the code that produced it.
+
+### DISCOVERY — the collation trap is identical across platforms
+
+The oracle self-test reports **4,851 inversions** for a `localeCompare`-ordered
+`C` on linux-x64 (node 22.23.2), win32-x64 (node 24.6.0) and darwin-arm64
+(node 24.15.0). Identical, not approximately equal.
+
+This was not a planned check. `localeCompare` uses ICU collation data bundled
+with each Node build, and nothing guaranteed that three different builds on
+three platforms would agree on where `Z` sits relative to `a`. They do.
+
+Consequence for the tutorial: 4,851 is a stable fact that can be stated
+outright rather than an observation needing a per-platform caveat. Consequence
+for the project: the byte-vs-locale trap behaves identically everywhere, so a
+port that reaches for locale collation fails the same way on every target
+rather than only on some — which is better, because a fault that appears on
+one platform only is the kind that ships.
+
+### OBSERVATION — not a measurement
+
+darwin-arm64 (M4 Pro) against win32-x64 (i9-13900F), dataset C, tiny tier:
+
+    load    54.9 ms   vs   79.6 ms
+    work    43.5 ms   vs   50.3 ms
+
+The Mac is ahead on both phases despite far fewer cores. This is filed as an
+**observation, not a finding**: different Node versions, different operating
+systems, a single cold run each, no repeat, and the smallest tier. It is the
+architecture axis showing signs of life, nothing more.
+
+Recorded deliberately in this form. Treating a suggestive number as a result
+is the same error as the three RSS corrections above — the difference between
+a measurement and a number you happen to have is whether you can say what it
+excludes.

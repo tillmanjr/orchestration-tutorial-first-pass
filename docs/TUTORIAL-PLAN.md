@@ -74,6 +74,18 @@ falsified the measurement contract before a single benchmark ran — Node
 normalises to kilobytes everywhere via libuv, native code does not, and the
 same `getrusage` call returns bytes on Darwin and kilobytes on Linux. A Rust
 cell and a Node cell would have disagreed by 1024× with neither looking wrong.
+
+**The lesson is larger than the title, and the material for it is unusually
+good.** The same quantity was measured wrongly three separate times — units
+assumed from documentation, process-lifetime reported as per-run, and the
+verifier's allocations counted as the subject's — and the third was
+*introduced by the fix for the second*. Every instance was precise,
+reproducible, and correctly labelled by its own code.
+
+So the tutorial should not argue "verify your instrument before you start".
+It should argue that a measurement's meaning is set by where its boundary
+falls, that the boundary moves whenever surrounding code changes, and that
+the name never moves with it. See LOG, *the pattern is the finding*.
 **Status: earned.**
 
 ### T2 · Build the checker before the implementation

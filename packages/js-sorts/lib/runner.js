@@ -78,6 +78,16 @@ export function runCell(job, impl) {
     lastLoaded = loaded;
   }
 
+  // Peak RSS is captured HERE -- after the last run's phases, before the
+  // invariant checks -- because everything below allocates. digest() runs
+  // twice over the full record set and checkI1/checkI3 walk it again.
+  //
+  // Measured on win32-x64 at the tiny tier, sampling after the checks instead
+  // reported 170 MB against 119 MB sampled here: 52 MB of ORACLE cost folded
+  // into a figure labelled as the cell's memory use. It would have varied
+  // with the checker rather than with the cell.
+  const peakAfterWork = peakRssBytes();
+
   // Invariants run AFTER timing and are never inside a measured phase.
   // A cell that verified itself inside `work` would be reporting the cost of
   // its own checking as the cost of its algorithm.
@@ -134,8 +144,9 @@ export function runCell(job, impl) {
     // looks authoritative and means something other than what a reader will
     // assume -- the exact failure mode rss-probe exists to prevent, recurring
     // one level up.
-    peak_rss_bytes: peakRssBytes(),
+    peak_rss_bytes: peakAfterWork,
     memory_measurement_valid: repeat === 1,
+    peak_rss_includes: 'load, work and emit only; sampled before invariant checks',
 
     summary_ns: {
       work_cold: workNs[0],
