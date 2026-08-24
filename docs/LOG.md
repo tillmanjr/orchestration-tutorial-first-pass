@@ -761,3 +761,52 @@ Two runner defects fixed alongside:
   say so. `algorithm()` now receives a note callback.
 
 All five cells pass all 12 cases.
+
+### CORRECTION — the noise floor conflated two statistics, and the fix cost no re-runs
+
+`noise-probe` reported `max(within_process.median, between_process.spread)` as
+the resolution floor. Wrong: those measure different things.
+
+`within` is the spread of individual warm repeats. `between` is the spread of
+their **minima** across invocations — and a minimum is inherently less variable
+than the samples it is drawn from. Taking the larger inflates the floor with a
+figure that governs nothing.
+
+The statistic a comparison actually uses is `work_warm_min`. The floor is how
+much *that* moves between invocations. Within-process spread is a
+**convergence diagnostic** — it says whether the minimum has settled — and is
+now reported as one.
+
+Caught on darwin-arm64, where within (15.1%) exceeded between (11.5%) and the
+inversion made the conflation visible. On the two noisier hosts the ordering
+happened to hide it. A defect that is invisible on the machines where the
+numbers are worse.
+
+Corrected floors: **darwin-arm64 11.5%** (admissible, converged),
+win32-x64 27.4% (inadmissible — empty marker file, needs one re-run),
+sandbox 18.9% (correctly refused).
+
+### The part worth keeping: raw data and derived summary must stay separable
+
+The bug was in a **derivation**, not in a measurement. Every underlying figure
+in the result files was correct throughout.
+
+So the fix was `--recompute <file>`: read the measurements the file already
+contains, redo the arithmetic, rewrite the summary. Windows' committed result
+went 30.6% → 27.4% without re-running anything, and the Mac's stands as
+measured.
+
+Had the result file stored only its conclusion — a single `noise_floor: 0.306`
+— both hosts would have needed full re-runs to fix an arithmetic error, and
+the operator was already out of patience for a third round.
+
+**Record what was measured. Derive what it means. Keep them separable.** Raw
+data is expensive; arithmetic over it is free. This applies directly to the
+benchmark manifests, which is why they carry per-run phase arrays rather than
+only `summary_ns` — a decision made for legibility that turns out to be
+insurance.
+
+That is now three artifacts where the measurement was right and the
+*interpretation* was wrong: peak RSS (three times), the noise floor, and the
+fan-out's inadmissible host. None was a computation error. All were about what
+a correct number meant.

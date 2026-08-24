@@ -24,8 +24,23 @@
 // holds page cache, JIT state and allocator arena constant, none of which are
 // constant between two cells being compared.
 //
-// The reported floor is the LARGER of the two, because a comparison has to
-// clear whichever noise it is actually exposed to.
+// THE FLOOR IS between-process ALONE. An earlier version of this file took
+// max() of the two, which was wrong.
+//
+// They measure different statistics. `within` is the spread of individual warm
+// repeats; `between` is the spread of their MINIMA across invocations, and a
+// minimum is inherently less variable than the samples it is drawn from.
+// Comparing them is not like for like, and max() inflates the floor with a
+// figure that governs nothing.
+//
+// The statistic a comparison actually uses is `work_warm_min`. The floor is
+// how much THAT moves between invocations. Within-process spread is a
+// diagnostic -- it says whether the minimum has converged -- and is reported
+// for that reason, not as a threshold.
+//
+// Caught on darwin-arm64, where within (15.1%) exceeded between (11.5%) and
+// the inversion made the conflation visible. On the two noisier hosts the
+// ordering happened to hide it.
 
 import { spawnSync } from 'node:child_process';
 import { writeFileSync, mkdirSync } from 'node:fs';
@@ -34,6 +49,39 @@ import { dirname, join, resolve } from 'node:path';
 import os from 'node:os';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
+
+// --- recompute -----------------------------------------------------------
+//
+//   node packages/harness/noise-probe/probe.js --recompute <result.json>
+//
+// The floor is DERIVED from measurements the file already contains. When the
+// derivation is wrong -- as it was once, taking max() of two incommensurable
+// statistics -- the fix must never cost a re-run. Raw data is expensive;
+// arithmetic over it is free.
+//
+// This is a small instance of a general rule worth keeping: record the
+// measurements, derive the summary, and keep the two separable. A result file
+// that stored only the conclusion would have had to be regenerated.
+if (process.argv.includes('--recompute')) {
+  const { readFileSync: rf, writeFileSync: wf } = await import('node:fs');
+  const target = process.argv[process.argv.indexOf('--recompute') + 1];
+  if (!target) { console.error('--recompute needs a path to a noise-probe result'); process.exit(2); }
+  const m = JSON.parse(rf(target, 'utf8'));
+  const oldFloor = m.resolution_floor_frac;
+  const floor = m.between_process?.spread_frac ?? null;
+  const withinMed = m.within_process?.median_frac ?? 0;
+  const converged = withinMed <= 3 * (floor ?? Infinity);
+  m.resolution_floor_frac = floor;
+  m.floor_source = 'between_process.spread_frac -- movement of work_warm_min, the statistic comparisons actually use';
+  m.within_process_converged = converged;
+  m.recomputed = true;
+  wf(target, JSON.stringify(m, null, 2) + '\n');
+  const pc = (x) => (x == null ? 'n/a' : `${(x * 100).toFixed(1)}%`);
+  console.error(`${target}\n  floor ${pc(oldFloor)} -> ${pc(floor)}   (${m.platform?.os}-${m.platform?.arch}, admissible: ${m.benchmark_admissible})`);
+  console.error(`  within-process median ${pc(withinMed)} -- ${converged ? 'converged' : 'WIDE, raise --repeat next time'}`);
+  process.exit(0);
+}
+
 const REPO = resolve(HERE, '..', '..', '..');
 const argv = process.argv.slice(2);
 const opt = (f, d) => { const i = argv.indexOf(f); return i >= 0 && argv[i + 1] ? argv[i + 1] : d; };
@@ -84,7 +132,11 @@ const between = stats(invocations.map((v) => v.work_warm_min ?? v.work_cold));
 const betweenCold = stats(invocations.map((v) => v.work_cold));
 const betweenLoad = stats(invocations.map((v) => v.load_min));
 
-const floor = Math.max(within.median ?? 0, between.spread_frac ?? 0);
+const floor = between.spread_frac ?? null;
+// A minimum drawn from wildly scattered repeats is a lucky sample rather than
+// a converged figure. This does not change the floor; it flags that the floor
+// may be optimistic.
+const converged = (within.median ?? 0) <= 3 * (floor ?? Infinity);
 
 const result = {
   contract: 1,
@@ -111,6 +163,11 @@ const result = {
   between_process_cold: { min_ns: betweenCold.min, max_ns: betweenCold.max, spread_frac: betweenCold.spread_frac },
   between_process_load: { min_ns: betweenLoad.min, max_ns: betweenLoad.max, spread_frac: betweenLoad.spread_frac },
   resolution_floor_frac: floor,
+  floor_source: 'between_process.spread_frac -- movement of work_warm_min, the statistic comparisons actually use',
+  within_process_converged: converged,
+  within_process_note: converged
+    ? 'warm repeats are consistent enough that work_warm_min is a converged figure'
+    : 'warm repeats scatter widely relative to the floor: work_warm_min may be a lucky sample rather than a converged minimum. Raise --repeat.',
   rule: 'A difference between two cells is reportable only if it exceeds resolution_floor_frac of the smaller figure. Below that it is not a difference.',
 };
 
@@ -122,6 +179,8 @@ console.error(`
   between (load)         ${pct(betweenLoad.spread_frac)}
 
   RESOLUTION FLOOR: ${pct(floor)}   admissible host: ${result.benchmark_admissible}
+  (between-process only; within-process is a convergence diagnostic, not the floor)
+  ${converged ? 'work_warm_min is converged.' : 'WARNING: warm repeats scatter widely -- work_warm_min may be a lucky sample. Raise --repeat.'}
   A gap smaller than this is not a difference.`);
 
 console.log(JSON.stringify(result, null, 2));

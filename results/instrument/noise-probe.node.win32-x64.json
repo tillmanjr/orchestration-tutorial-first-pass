@@ -1,0 +1,46 @@
+{
+  "contract": 1,
+  "probe": "noise",
+  "runtime": "node",
+  "runtime_version": "24.6.0",
+  "platform": {
+    "os": "win32",
+    "arch": "x64",
+    "cpu": "13th Gen Intel(R) Core(TM) i9-13900F",
+    "cores_logical": 32,
+    "ram_bytes": 68424019968
+  },
+  "benchmark_admissible": false,
+  "tier": "tiny",
+  "dataset": "C",
+  "invocations": 10,
+  "repeat_per_invocation": 5,
+  "within_process": {
+    "note": "spread across warm repeats inside one invocation, as a fraction of that invocation's warm minimum",
+    "median_frac": 0.3055082683352665,
+    "min_frac": 0.133565819983673,
+    "max_frac": 0.631294674556213
+  },
+  "between_process": {
+    "note": "movement of work_warm_min itself across separate invocations -- the variance a cell-vs-cell comparison is actually exposed to",
+    "min_ns": 41296100,
+    "median_ns": 46742700,
+    "max_ns": 52628700,
+    "spread_frac": 0.274423008468112
+  },
+  "between_process_cold": {
+    "min_ns": 43762700,
+    "max_ns": 57585600,
+    "spread_frac": 0.31586031026422046
+  },
+  "between_process_load": {
+    "min_ns": 54647500,
+    "max_ns": 67078300,
+    "spread_frac": 0.22747243698247863
+  },
+  "resolution_floor_frac": 0.274423008468112,
+  "rule": "A difference between two cells is reportable only if it exceeds resolution_floor_frac of the smaller figure. Below that it is not a difference.",
+  "floor_source": "between_process.spread_frac -- movement of work_warm_min, the statistic comparisons actually use",
+  "within_process_converged": true,
+  "recomputed": true
+}
