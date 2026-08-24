@@ -973,3 +973,99 @@ past `load` and the algorithmic differences stop being a minority of the
 runtime. Whether the rankings survive that is the next question, and it is a
 real one — a radix sort's advantage grows with n while its cache behaviour
 worsens.
+
+## The `mid` matrix — both predictions wrong, and one finding that reframes the project
+
+25× the records. Same five cells, same two hosts, same floors.
+
+### Prediction 1, WRONG: `work` did not overtake `load`
+
+Predicted: at 25× the data, sorting (n log n) would clearly overtake parsing
+(linear) and the algorithmic differences would stop being a minority of
+runtime.
+
+Observed — and the shape is more interesting than the prediction:
+
+    darwin-arm64   load 1.10 - 1.36 s     work 0.69 - 2.47 s
+    win32-x64      load 1.59 - 2.16 s     work 1.12 - 3.74 s
+
+`work` overtook `load` **for the slow cells and not for the fast ones.** On
+darwin-arm64, `quick` sorts A in 1.03 s against a 1.33 s parse; `builtin`
+takes 2.47 s against the same parse.
+
+**The better your sort, the more parse-bound you become.** Optimising the sort
+does not move you toward a faster program, it moves you toward a program whose
+cost is somewhere else. The winner of every scenario on the Mac is the cell
+for which the sort is *no longer the bottleneck*.
+
+That is a genuinely useful thing to be able to tell a reader, and it is the
+opposite of what a table of sort rankings implies on its face.
+
+### Prediction 2, WRONG: `radix` did not hold its Windows sweep
+
+At tiny, `radix` won all three `soa` scenarios on Windows. At `mid` it wins
+two of three, and in `aos` on B it is **last, 88.5% behind**.
+
+The asymptotic argument said a radix sort's advantage grows with n. It shrank.
+Whatever `radix` was exploiting at tiny was a property of a dataset small
+enough to behave differently, not of the algorithm's complexity class.
+
+**The architecture inversion survives, though.** On Windows `soa`, `radix`
+wins B and C. On the Mac `soa`, `radix` is last on A, fourth on B, third on C.
+Same code, same data, opposite verdicts — at both scales.
+
+### The control inverts too, in the opposite direction
+
+`builtin` wins A/`aos` on Windows outright. On the Mac it is **last in all
+three `aos` scenarios**, 131–152% behind `quick`.
+
+So two cells now invert across architecture, and in opposite directions:
+`radix` favours Windows `soa`, `builtin` favours Windows `aos`. On the Mac,
+`quick` beats both decisively.
+
+The earlier falsification of the control stands but needs qualifying: the
+native-versus-callback tradeoff is **not a constant**. It moves with n, with
+representation, and with architecture. "Native TimSort loses to hand-written
+JS" was too strong; "it depends, and here is the shape of the dependence" is
+the real finding.
+
+### What each machine actually answers
+
+**Given a Mac:** use `quick`. It wins all six scenarios, by 82–152% in `aos`.
+Nothing else is close, and its advantage *grew* with scale — at tiny the
+margins were 18–56%.
+
+**Given a Windows box:** `quick` for `aos` on B and C, `radix` for `soa` on B
+and C — but on A/`aos` four of five cells are indistinguishable, so the honest
+answer is *"pick any of them"*. That is not a limitation of the study; it is
+what a 21.9% floor means, and it is the answer a reader on that machine needs.
+
+### `soa` is two orders of magnitude noisier than `aos` on the Mac
+
+Within-run spreads, darwin-arm64:
+
+    aos   3.2, 6.5, 9.6, 11.8, 12.0, 15.0, 16.4 ms
+    soa   113.6, 118.4, 130.9, 149.8, 213.0, 259.5, 314.0, 326.4, 413.2 ms
+
+Same host, same data, same repeat count. `soa` allocates typed arrays and
+gathers into fresh columns; `aos` permutes an existing array of references.
+The allocation churn appears to put `soa` measurements at the mercy of GC
+timing in a way `aos` is not.
+
+Consequence: **every `soa` result is less trustworthy than its `aos`
+counterpart at the same repeat count**, and the flat repeat count across the
+matrix is therefore wrong. Repeats should be per-cell-and-mode, set by observed
+spread, not chosen once for the whole run.
+
+### `--repeat 5` is not enough at `mid`
+
+Six of thirty rows flagged UNCONVERGED on each host — including two scenario
+winners on the Mac (`quick` on B/`soa` and C/`soa`) and the winner of A/`soa`
+on Windows at **85% spread**.
+
+A row that names a fastest cell on unconverged evidence is exactly the failure
+this project keeps rediscovering: a precise number meaning less than it
+appears to. Added `--only` to the matrix runner so re-running the flagged
+cells at a higher repeat costs a minute rather than a full pass — because a
+full pass is what someone skips, leaving the flag standing in a committed
+result.

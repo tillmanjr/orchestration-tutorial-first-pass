@@ -52,7 +52,19 @@ if (!floorDoc.benchmark_admissible) {
 const FLOOR = floorDoc.resolution_floor_frac;
 
 const cellDir = join(REPO, 'packages', 'js-sorts', 'cells');
-const cells = readdirSync(cellDir).filter((f) => f.endsWith('.js') && !f.startsWith('.')).sort();
+let cells = readdirSync(cellDir).filter((f) => f.endsWith('.js') && !f.startsWith('.')).sort();
+
+// --only quick,radix restricts the run to named cells. Six of thirty rows came
+// back UNCONVERGED at mid with --repeat 5, including two scenario winners.
+// Re-running those at a higher repeat should not cost a full pass -- and a
+// full pass is exactly what someone will skip rather than pay, leaving the
+// flag standing in the committed result.
+const ONLY = opt('--only', null);
+if (ONLY) {
+  const want = new Set(ONLY.split(',').map((x) => x.trim()));
+  cells = cells.filter((f) => want.has(basename(f, '.js')));
+  if (!cells.length) { console.error(`--only '${ONLY}' matched no cells`); process.exit(2); }
+}
 
 console.error(`matrix: ${cells.length} cells x ${DATASETS.length} datasets x ${MODES.length} modes, repeat ${REPEAT}`);
 console.error(`host:   ${HOST}  ${os.cpus()[0]?.model ?? ''}`);
