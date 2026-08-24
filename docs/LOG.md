@@ -810,3 +810,71 @@ That is now three artifacts where the measurement was right and the
 *interpretation* was wrong: peak RSS (three times), the noise floor, and the
 fan-out's inadmissible host. None was a computation error. All were about what
 a correct number meant.
+
+## Both hosts measured — and the plan's benchmark machine is the wrong one
+
+First two admissible noise floors, measured identically (10 invocations ×
+repeat 5, dataset C, tiny tier), both converged:
+
+| Host | Cores | RAM | Floor | `work_warm_min` |
+|---|---|---|---|---|
+| Apple M4 Pro, node 24.15.0 | 14 | 24 GB | **11.5%** | 39.7 – 44.3 ms |
+| i9-13900F, node 24.6.0 | 32 | 63.7 GB | **21.9%** | 50.3 – 61.3 ms |
+
+**The smaller machine is 1.89× quieter.** That is a finding about measurement
+quality, taken the same way on both, and it stands on its own.
+
+> **Corrected same day.** I read this as "Windows is the wrong benchmark
+> machine" — an inversion of the M0 plan. The operator corrected the framing:
+> cross-machine ranking is not the task at all. The question is *given a Mac,
+> or given a Windows box, which scenario performs best and in what way.* Two
+> independent matrices, never one table.
+>
+> Under that framing there is no inversion. Both machines run the scenarios;
+> Windows additionally runs `large` because nothing else can hold it. That is
+> a capability difference, not a ranking.
+>
+> The floor difference survives, reframed: it does not rank the machines, it
+> determines **what each architecture can resolve.** Windows at 21.9% will
+> find cell pairs indistinguishable that the Mac at 11.5% separates, and *"on
+> this architecture these two scenarios are the same"* is a legitimate result
+> a reader on that architecture actually needs.
+>
+> Cross-host comparison is now **prohibited** by contract §5c rather than
+> regulated — which was the right disposal of the gap I had flagged.
+
+### The speed difference is NOT a finding, and saying why matters
+
+The same table shows the Mac 1.27× faster on `work_warm_min` minima. That gap
+clears the floor — 26.7% against 21.9%, or 37.6% on medians — and it is still
+not reportable as an architecture result, because it is **confounded**:
+different architecture, different OS, *and different Node versions* (24.6.0 vs
+24.15.0).
+
+It is not "M4 Pro beats i9-13900F". It is "this whole stack beats that whole
+stack", which is a much weaker claim and nearly useless for the tutorial.
+
+**Gap in the contract:** `MEASUREMENT-CONTRACT` §5a governs comparing two
+cells *on one host*. It says nothing about comparing across hosts, where the
+floors differ, the runtime version differs, and clearing the larger floor is
+necessary but nowhere near sufficient. Cross-host comparison needs its own
+rule or an explicit prohibition. Currently it has neither, which means the
+first person to put both columns in a table will draw a conclusion the
+contract never licensed.
+
+### Floor stability is itself unmeasured
+
+The Windows floor moved **27.4% → 21.9%** between two runs of the same command
+on the same host. Admissibility does not affect the physics, so that is 5.5
+points of movement in the floor measurement itself — roughly a quarter of its
+own value.
+
+A threshold that varies by a quarter of itself is soft, and every comparison
+in the project is about to be judged against it. Whether 10 invocations is
+enough for the floor to converge has not been established; it was chosen
+because it seemed reasonable.
+
+The recursion is real and worth naming: **we measured the noise, and have not
+measured the noise in the noise measurement.** At some point that terminates
+in judgement rather than in data, and the useful discipline is to say where
+you stopped rather than to pretend the floor is exact.

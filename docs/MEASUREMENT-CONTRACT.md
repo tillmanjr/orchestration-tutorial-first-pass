@@ -1,4 +1,4 @@
-# Measurement Contract — v1.5 (frozen)
+# Measurement Contract — v1.6 (frozen)
 
 ---
 
@@ -267,6 +267,43 @@ Inadmissible timings are still recorded — they are a useful smoke test. They
 are simply not a measurement, and the manifest now says which it is instead of
 leaving a reader to infer it from the platform block. Correctness results are
 unaffected by admissibility.
+
+## 5c. Comparisons are within-host, always
+
+**The question is: given this machine, which scenario performs best and in
+what way. It is not: which machine is better.**
+
+Each host produces its own matrix and its own conclusions. A table containing
+two architectures is **prohibited**, not merely discouraged.
+
+Clearing the larger of two hosts' floors is necessary and nowhere near
+sufficient, because a cross-host gap is confounded by operating system and
+runtime version as well as hardware. The measured example: darwin-arm64
+(node 24.15.0) ran identical work 1.27× faster than win32-x64 (node 24.6.0),
+which clears both floors and still supports no claim about either processor.
+It is "this whole stack against that whole stack" — a much weaker statement,
+and useless for the question actually being asked.
+
+### What the floor difference does mean
+
+Measured floors: **darwin-arm64 11.5%**, **win32-x64 21.9%**.
+
+That does not rank the machines. It determines **what each architecture can
+resolve.** Windows will find pairs of cells indistinguishable that the Mac
+separates — and *"on this architecture these two scenarios are the same"* is
+itself a legitimate, useful, per-architecture result. A reader choosing
+between them on a Windows box does not need a number the machine cannot
+measure.
+
+### Consequently
+
+- `results/matrix/matrix.node.<host>.<tier>.json` is per-host and carries a
+  `scope` field saying so.
+- The matrix runner refuses to start without an admissible host **and** a
+  measured floor for that host. A comparison with no floor is not a
+  comparison: every gap looks meaningful.
+- Both machines run the scenarios. Windows additionally runs `large`, because
+  nothing else can hold it. That is a capability difference, not a ranking.
 
 ## 6. Job spec — into the process
 
