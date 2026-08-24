@@ -88,6 +88,7 @@ for (const cell of cells) {
         continue;
       }
       const m = JSON.parse(r.stdout);
+      const warm = (m.runs ?? []).slice(1).map((x) => x.phases_ns.work);
       const inv = Object.entries(m.invariants ?? {}).filter(([, v]) => v !== 'pass');
       runs.push({
         cell: basename(cell, '.js'), dataset: ds, mode, failed: false,
@@ -95,6 +96,7 @@ for (const cell of cells) {
         work_warm_min: m.summary_ns.work_warm_min ?? m.summary_ns.work_cold,
         work_cold: m.summary_ns.work_cold,
         work_warm_spread: m.summary_ns.work_warm_spread,
+        warm_runs: warm,
         load_min: m.summary_ns.load_min,
         invariants_ok: inv.length === 0,
         notes: m.notes ?? [],
@@ -120,18 +122,34 @@ for (const ds of DATASETS) {
                       .sort((a, b) => a.work_warm_min - b.work_warm_min);
     if (!group.length) continue;
     const fastest = group[0];
+    // A lead smaller than the floor is not a lead. Naming the top row
+    // "fastest" regardless is how a 16% gap on a 21.9%-floor host became a
+    // reported result -- the runner said "indistinguishable" in one column and
+    // "fastest" in another, and every downstream conclusion read the second.
+    const runnerUp = group[1];
+    const leadFrac = runnerUp ? (runnerUp.work_warm_min - fastest.work_warm_min) / fastest.work_warm_min : Infinity;
+    const hasWinner = leadFrac > FLOOR;
     const rows = group.map((r) => {
       const gap = (r.work_warm_min - fastest.work_warm_min) / fastest.work_warm_min;
       const ties = group.filter((o) => o !== r &&
         Math.abs(o.work_warm_min - r.work_warm_min) / Math.min(o.work_warm_min, r.work_warm_min) < FLOOR
       ).map((o) => o.cell);
-      // A within-run spread far larger than the floor means work_warm_min is
-      // a lucky sample rather than a converged minimum. The floor is a
-      // between-process statistic and says nothing about this. Observed at
-      // tiny: a 61.9ms minimum with a 43.1ms spread -- 70% -- sitting in a
-      // table beside a 21.9% floor as though both were equally solid.
-      const spreadFrac = r.work_warm_spread == null ? null : r.work_warm_spread / r.work_warm_min;
-      const converged = spreadFrac == null ? null : spreadFrac <= 2 * FLOOR;
+      // Dispersion as RELATIVE IQR, not range.
+      //
+      // The first version used (max - min) / min. Range is a valid dispersion
+      // statistic and a broken convergence indicator, because it grows
+      // monotonically with sample count: every extra repeat is another chance
+      // to catch a GC pause. Going from --repeat 5 to --repeat 15 took the
+      // UNCONVERGED count from 6 to 9 -- MORE evidence made the quality flag
+      // worse, which is backwards.
+      //
+      // IQR over the median is sample-size stable, so more repeats now make a
+      // row more likely to be judged converged rather than less.
+      const warm = (r.warm_runs ?? []).slice().sort((x, y) => x - y);
+      const q = (f) => warm.length ? warm[Math.min(warm.length - 1, Math.floor(f * warm.length))] : null;
+      const med = q(0.5), p25 = q(0.25), p75 = q(0.75);
+      const spreadFrac = (med && p25 != null && p75 != null) ? (p75 - p25) / med : null;
+      const converged = spreadFrac == null ? null : spreadFrac <= FLOOR;
       return {
         cell: r.cell, work_warm_min_ns: r.work_warm_min, work_warm_spread_ns: r.work_warm_spread,
         spread_frac: spreadFrac, converged,
@@ -141,17 +159,21 @@ for (const ds of DATASETS) {
         indistinguishable_from: ties,
       };
     });
-    report.push({ dataset: ds, mode, rows });
+    report.push({ dataset: ds, mode, rows, has_distinguishable_winner: hasWinner,
+                  lead_frac: leadFrac === Infinity ? null : leadFrac,
+                  winner: hasWinner ? fastest.cell : null });
 
-    console.log(`dataset ${ds}, load_mode ${mode}`);
-    console.log(`  ${'cell'.padEnd(10)}${'work'.padStart(9)}${'spread'.padStart(9)}${'load'.padStart(9)}${'vs best'.padStart(10)}   verdict`);
+    console.log(`dataset ${ds}, load_mode ${mode}` + (hasWinner
+      ? `   winner: ${fastest.cell} (leads by ${(leadFrac * 100).toFixed(1)}%)`
+      : `   NO DISTINGUISHABLE WINNER (top lead ${(leadFrac * 100).toFixed(1)}% is inside the ${(FLOOR * 100).toFixed(1)}% floor)`));
+    console.log(`  ${'cell'.padEnd(10)}${'work'.padStart(9)}${'iqr'.padStart(8)}${'load'.padStart(9)}${'vs best'.padStart(10)}   verdict`);
     for (const r of rows) {
-      const verdict = r === rows[0] ? 'fastest'
+      const verdict = r === rows[0] ? (hasWinner ? 'winner' : 'nominally first, not a winner')
         : r.distinguishable_from_fastest ? `slower than ${fastest.cell}`
         : `indistinguishable from ${fastest.cell}`;
       const inv = (r.invariants_ok ? '' : '  [INVARIANT FAILURE]')
         + (r.converged === false ? `  [UNCONVERGED spread ${(r.spread_frac * 100).toFixed(0)}%]` : '');
-      console.log(`  ${r.cell.padEnd(10)}${ms(r.work_warm_min_ns).padStart(7)}ms${(r.work_warm_spread_ns == null ? 'n/a' : ms(r.work_warm_spread_ns)).padStart(7)}ms${ms(r.load_min_ns).padStart(7)}ms${(r.gap_vs_fastest * 100).toFixed(1).padStart(9)}%   ${verdict}${inv}`);
+      console.log(`  ${r.cell.padEnd(10)}${ms(r.work_warm_min_ns).padStart(7)}ms${(r.spread_frac == null ? 'n/a' : (r.spread_frac * 100).toFixed(0) + '%').padStart(8)}${ms(r.load_min_ns).padStart(7)}ms${(r.gap_vs_fastest * 100).toFixed(1).padStart(9)}%   ${verdict}${inv}`);
     }
     console.log('');
   }
@@ -169,6 +191,7 @@ const result = {
   host: HOST, cpu: os.cpus()[0]?.model ?? null, cores_logical: os.cpus().length,
   runtime: 'node', runtime_version: process.versions.node,
   tier: TIER, repeat: REPEAT,
+  partial: ONLY ? ONLY.split(',').map((x) => x.trim()) : null,
   floor: { value: FLOOR, source: basename(floorPath), admissible: floorDoc.benchmark_admissible },
   scope: 'THIS HOST ONLY. Results are not comparable with another host: a cross-host table is confounded by OS and runtime version as well as hardware.',
   report, failed,
@@ -177,7 +200,12 @@ const result = {
 if (argv.includes('--write')) {
   const dir = join(REPO, 'results', 'matrix');
   mkdirSync(dir, { recursive: true });
-  const p = join(dir, `matrix.node.${HOST}.${TIER}.json`);
+  // --only produces a PARTIAL matrix. Writing it to the canonical filename
+  // replaced a five-cell result with a four-cell one and silently dropped
+  // `workers` from the record. A convenience that was correct about what it
+  // ran and wrong about what it wrote.
+  const suffix = ONLY ? `.only-${ONLY.replace(/[^a-z0-9]+/gi, '-')}` : '';
+  const p = join(dir, `matrix.node.${HOST}.${TIER}${suffix}.json`);
   writeFileSync(p, JSON.stringify(result, null, 2) + '\n');
   console.error(`wrote ${p}`);
 }

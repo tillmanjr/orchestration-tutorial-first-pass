@@ -1069,3 +1069,93 @@ appears to. Added `--only` to the matrix runner so re-running the flagged
 cells at a higher repeat costs a minute rather than a full pass — because a
 full pass is what someone skips, leaving the flag standing in a committed
 result.
+
+## RETRACTION — the `mid` conclusions did not survive more evidence
+
+Everything in the previous section marked as a finding about *which cell
+wins* is **withdrawn**. Three times the repeats overturned it.
+
+win32-x64, `mid`, same data, same host, same floor:
+
+| Scenario | `--repeat 5` | `--repeat 15` |
+|---|---|---|
+| A/`aos` | **builtin** | quick |
+| A/`soa` | quick | quick |
+| B/`aos` | quick | quick |
+| B/`soa` | **radix** | quick |
+| C/`aos` | quick | quick |
+| C/`soa` | **radix** | quick |
+
+`radix` wins nothing. `builtin` wins nothing. `quick` is nominally first in
+all six — matching darwin-arm64.
+
+**So "radix wins Windows `soa`" and "the architecture inversion" are
+withdrawn.** They were written into this log and into a commit message with
+confidence, and three more repeats removed them. The inversion may have been
+noise from the start; it was never tested at a repeat count where the winner
+was stable.
+
+### How it got through: a "winner" whose lead was inside the floor
+
+At `--repeat 5`, B/`soa`: radix 1384 ms, quick 1611 ms. A **16.4% gap on a host
+with a 21.9% floor.**
+
+The runner labelled quick *"indistinguishable from radix"* in the verdict
+column — correctly — and simultaneously labelled radix **"fastest"** by virtue
+of sorting first in the list. Every conclusion drawn downstream read the
+second label and ignored the first.
+
+**A lead smaller than the floor is not a lead.** The runner now refuses to
+name a winner unless the top cell's margin over second place exceeds the
+floor, and prints `NO DISTINGUISHABLE WINNER` otherwise. The floor was
+measured, documented, enforced on the *rows* — and not applied to the thing
+everyone actually reads, which is who came first.
+
+### More evidence made the quality flag worse
+
+`--repeat 5` → 6 UNCONVERGED rows. `--repeat 15` → **9**.
+
+Because the dispersion measure was `(max - min) / min`. Range grows
+monotonically with sample count — every extra repeat is another chance to
+catch a GC pause. So the metric punished exactly the thing that improves an
+estimate.
+
+Range is a valid dispersion statistic and a broken convergence indicator.
+Replaced with relative IQR over the median, which is sample-size stable: more
+repeats now make a row *more* likely to be judged converged, which is the
+correct direction.
+
+### `--only` silently truncated the record
+
+The re-run wrote four cells over a committed five-cell result, dropping
+`workers` — the cell with the worst convergence behaviour on both hosts — out
+of the matrix entirely. Partial runs now write to a distinct filename and
+carry a `partial` field.
+
+Flagged as a risk before the run and it happened anyway, because the fix was
+deferred until after the numbers came back. **A known defect left in place for
+one more run is a defect that ships.**
+
+### What actually stands
+
+- **`quick` is the robust choice on both architectures** at `mid`, nominally
+  first in all twelve host-scenarios. Whether its lead clears each floor is
+  now the open question, and the fixed runner answers it directly.
+- **The parse-bound finding stands.** It rests on `load` versus `work`
+  magnitudes, not on rankings, and both are far outside any floor.
+- **The `soa`-is-noisier-than-`aos` finding stands** for the same reason —
+  two orders of magnitude is not a floor question.
+- **Every claim about which cell wins is unverified** until a run with the
+  fixed winner rule and a converged dispersion measure.
+
+### The pattern, for the fourth time today
+
+The measurement was right. The label on top of it was wrong. RSS scope, the
+noise floor derivation, the conformance gate, and now the word "fastest" —
+each a correct computation carrying a meaning nobody had checked.
+
+The difference here is that it produced a *published conclusion*, in a commit
+message, that was wrong. Everything upstream of it worked: the floor was
+measured, the ties were computed and printed, the unconverged rows were
+flagged. The failure was that the summary line disagreed with the data
+directly beside it, and the summary line is what gets read.

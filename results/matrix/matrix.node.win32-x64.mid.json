@@ -7,7 +7,8 @@
   "runtime": "node",
   "runtime_version": "24.6.0",
   "tier": "mid",
-  "repeat": 5,
+  "repeat": 15,
+  "partial": null,
   "floor": {
     "value": 0.21856329688988033,
     "source": "noise-probe.node.win32-x64.json",
@@ -20,90 +21,81 @@
       "mode": "aos",
       "rows": [
         {
-          "cell": "builtin",
-          "work_warm_min_ns": 2282501800,
-          "work_warm_spread_ns": 139728000,
-          "spread_frac": 0.06121703825162372,
+          "cell": "quick",
+          "work_warm_min_ns": 1630217200,
+          "work_warm_spread_ns": 122743500,
+          "spread_frac": 0.03774487538261499,
           "converged": true,
-          "load_min_ns": 1628392300,
+          "load_min_ns": 1797746800,
           "threads": 1,
           "invariants_ok": true,
           "gap_vs_fastest": 0,
           "distinguishable_from_fastest": false,
+          "indistinguishable_from": []
+        },
+        {
+          "cell": "merge",
+          "work_warm_min_ns": 2285296000,
+          "work_warm_spread_ns": 132209200,
+          "spread_frac": 0.026047434185692612,
+          "converged": true,
+          "load_min_ns": 1770696300,
+          "threads": 1,
+          "invariants_ok": true,
+          "gap_vs_fastest": 0.4018352891872322,
+          "distinguishable_from_fastest": true,
           "indistinguishable_from": [
-            "quick",
-            "radix",
-            "merge"
+            "builtin"
           ]
         },
         {
-          "cell": "quick",
-          "work_warm_min_ns": 2367494100,
-          "work_warm_spread_ns": 428654700,
-          "spread_frac": 0.18105840263762432,
+          "cell": "builtin",
+          "work_warm_min_ns": 2363560300,
+          "work_warm_spread_ns": 417657700,
+          "spread_frac": 0.05490709026744601,
           "converged": true,
-          "load_min_ns": 2104367200,
+          "load_min_ns": 1755359200,
           "threads": 1,
           "invariants_ok": true,
-          "gap_vs_fastest": 0.037236465706182574,
-          "distinguishable_from_fastest": false,
+          "gap_vs_fastest": 0.44984379995499985,
+          "distinguishable_from_fastest": true,
           "indistinguishable_from": [
-            "builtin",
-            "radix",
-            "merge"
+            "merge",
+            "radix"
           ]
         },
         {
           "cell": "radix",
-          "work_warm_min_ns": 2439247900,
-          "work_warm_spread_ns": 902486000,
-          "spread_frac": 0.3699853549120612,
+          "work_warm_min_ns": 2791617800,
+          "work_warm_spread_ns": 1340295900,
+          "spread_frac": 0.07099586983677009,
           "converged": true,
-          "load_min_ns": 1874670400,
+          "load_min_ns": 1820230500,
           "threads": 1,
           "invariants_ok": true,
-          "gap_vs_fastest": 0.06867293598629363,
-          "distinguishable_from_fastest": false,
+          "gap_vs_fastest": 0.7124207743606189,
+          "distinguishable_from_fastest": true,
           "indistinguishable_from": [
-            "builtin",
-            "quick",
-            "merge"
-          ]
-        },
-        {
-          "cell": "merge",
-          "work_warm_min_ns": 2730287500,
-          "work_warm_spread_ns": 580823300,
-          "spread_frac": 0.21273338430476643,
-          "converged": true,
-          "load_min_ns": 2031955200,
-          "threads": 1,
-          "invariants_ok": true,
-          "gap_vs_fastest": 0.19618197015222508,
-          "distinguishable_from_fastest": false,
-          "indistinguishable_from": [
-            "builtin",
-            "quick",
-            "radix",
-            "workers"
+            "builtin"
           ]
         },
         {
           "cell": "workers",
-          "work_warm_min_ns": 3079761800,
-          "work_warm_spread_ns": 245330100,
-          "spread_frac": 0.07965879049477138,
+          "work_warm_min_ns": 3407152200,
+          "work_warm_spread_ns": 360425800,
+          "spread_frac": 0.041901940128073335,
           "converged": true,
-          "load_min_ns": 1588760700,
+          "load_min_ns": 1745202500,
           "threads": 4,
           "invariants_ok": true,
-          "gap_vs_fastest": 0.34929216704232174,
+          "gap_vs_fastest": 1.0899989277502409,
           "distinguishable_from_fastest": true,
-          "indistinguishable_from": [
-            "merge"
-          ]
+          "indistinguishable_from": []
         }
-      ]
+      ],
+      "has_distinguishable_winner": true,
+      "lead_frac": 0.4018352891872322,
+      "winner": "quick"
     },
     {
       "dataset": "A",
@@ -111,83 +103,89 @@
       "rows": [
         {
           "cell": "quick",
-          "work_warm_min_ns": 1917206800,
-          "work_warm_spread_ns": 1623016200,
-          "spread_frac": 0.846552495015144,
+          "work_warm_min_ns": 2064517300,
+          "work_warm_spread_ns": 1364620400,
+          "spread_frac": 0.3082706985645778,
           "converged": false,
-          "load_min_ns": 2153255100,
+          "load_min_ns": 1725394700,
           "threads": 1,
           "invariants_ok": true,
           "gap_vs_fastest": 0,
           "distinguishable_from_fastest": false,
           "indistinguishable_from": [
-            "radix"
-          ]
-        },
-        {
-          "cell": "radix",
-          "work_warm_min_ns": 2029066300,
-          "work_warm_spread_ns": 431325800,
-          "spread_frac": 0.21257353690217023,
-          "converged": true,
-          "load_min_ns": 1750569700,
-          "threads": 1,
-          "invariants_ok": true,
-          "gap_vs_fastest": 0.058345036122342146,
-          "distinguishable_from_fastest": false,
-          "indistinguishable_from": [
-            "quick",
-            "workers"
-          ]
-        },
-        {
-          "cell": "workers",
-          "work_warm_min_ns": 2365843900,
-          "work_warm_spread_ns": 279458300,
-          "spread_frac": 0.11812203670749367,
-          "converged": true,
-          "load_min_ns": 1825998300,
-          "threads": 4,
-          "invariants_ok": true,
-          "gap_vs_fastest": 0.23400558562592205,
-          "distinguishable_from_fastest": true,
-          "indistinguishable_from": [
+            "workers",
             "radix",
             "merge"
           ]
         },
         {
-          "cell": "merge",
-          "work_warm_min_ns": 2605026200,
-          "work_warm_spread_ns": 1482749700,
-          "spread_frac": 0.5691880181473798,
-          "converged": false,
-          "load_min_ns": 2096816000,
+          "cell": "workers",
+          "work_warm_min_ns": 2369883700,
+          "work_warm_spread_ns": 781372400,
+          "spread_frac": 0.13198286949273347,
+          "converged": true,
+          "load_min_ns": 1766543100,
+          "threads": 4,
+          "invariants_ok": true,
+          "gap_vs_fastest": 0.14791176610629517,
+          "distinguishable_from_fastest": false,
+          "indistinguishable_from": [
+            "quick",
+            "radix",
+            "merge"
+          ]
+        },
+        {
+          "cell": "radix",
+          "work_warm_min_ns": 2409493000,
+          "work_warm_spread_ns": 672623900,
+          "spread_frac": 0.07401118411483225,
+          "converged": true,
+          "load_min_ns": 1748830000,
           "threads": 1,
           "invariants_ok": true,
-          "gap_vs_fastest": 0.35876119362814696,
-          "distinguishable_from_fastest": true,
+          "gap_vs_fastest": 0.1670975099118811,
+          "distinguishable_from_fastest": false,
           "indistinguishable_from": [
+            "quick",
             "workers",
-            "builtin"
+            "merge"
+          ]
+        },
+        {
+          "cell": "merge",
+          "work_warm_min_ns": 2473329800,
+          "work_warm_spread_ns": 316529800,
+          "spread_frac": 0.060347259115055646,
+          "converged": true,
+          "load_min_ns": 1599189900,
+          "threads": 1,
+          "invariants_ok": true,
+          "gap_vs_fastest": 0.19801844237391472,
+          "distinguishable_from_fastest": false,
+          "indistinguishable_from": [
+            "quick",
+            "workers",
+            "radix"
           ]
         },
         {
           "cell": "builtin",
-          "work_warm_min_ns": 3010302200,
-          "work_warm_spread_ns": 110351600,
-          "spread_frac": 0.03665798071701904,
+          "work_warm_min_ns": 3465667600,
+          "work_warm_spread_ns": 388620300,
+          "spread_frac": 0.021057511605468447,
           "converged": true,
-          "load_min_ns": 1773065900,
+          "load_min_ns": 2061807400,
           "threads": 1,
           "invariants_ok": true,
-          "gap_vs_fastest": 0.5701499702588161,
+          "gap_vs_fastest": 0.6786817916226713,
           "distinguishable_from_fastest": true,
-          "indistinguishable_from": [
-            "merge"
-          ]
+          "indistinguishable_from": []
         }
-      ]
+      ],
+      "has_distinguishable_winner": false,
+      "lead_frac": 0.14791176610629517,
+      "winner": null
     },
     {
       "dataset": "B",
@@ -195,11 +193,11 @@
       "rows": [
         {
           "cell": "quick",
-          "work_warm_min_ns": 1120574600,
-          "work_warm_spread_ns": 202521800,
-          "spread_frac": 0.1807303146082376,
+          "work_warm_min_ns": 1148514300,
+          "work_warm_spread_ns": 338963500,
+          "spread_frac": 0.08093406805815516,
           "converged": true,
-          "load_min_ns": 1860411200,
+          "load_min_ns": 1744260200,
           "threads": 1,
           "invariants_ok": true,
           "gap_vs_fastest": 0,
@@ -207,44 +205,30 @@
           "indistinguishable_from": []
         },
         {
-          "cell": "builtin",
-          "work_warm_min_ns": 1609138400,
-          "work_warm_spread_ns": 728083200,
-          "spread_frac": 0.45246773055692413,
-          "converged": false,
-          "load_min_ns": 1798976600,
-          "threads": 1,
-          "invariants_ok": true,
-          "gap_vs_fastest": 0.43599399807919975,
-          "distinguishable_from_fastest": true,
-          "indistinguishable_from": []
-        },
-        {
           "cell": "merge",
-          "work_warm_min_ns": 2006758800,
-          "work_warm_spread_ns": 492319100,
-          "spread_frac": 0.2453304801752956,
+          "work_warm_min_ns": 1440885800,
+          "work_warm_spread_ns": 84599300,
+          "spread_frac": 0.01603115108398836,
           "converged": true,
-          "load_min_ns": 2129057900,
+          "load_min_ns": 1559223800,
           "threads": 1,
           "invariants_ok": true,
-          "gap_vs_fastest": 0.7908301687366464,
+          "gap_vs_fastest": 0.254564962752314,
           "distinguishable_from_fastest": true,
           "indistinguishable_from": [
-            "workers",
-            "radix"
+            "builtin"
           ]
         },
         {
-          "cell": "workers",
-          "work_warm_min_ns": 2055398700,
-          "work_warm_spread_ns": 262403800,
-          "spread_frac": 0.12766564462651456,
+          "cell": "builtin",
+          "work_warm_min_ns": 1616027000,
+          "work_warm_spread_ns": 689352600,
+          "spread_frac": 0.07752910411108013,
           "converged": true,
-          "load_min_ns": 1632203400,
-          "threads": 4,
+          "load_min_ns": 1708856900,
+          "threads": 1,
           "invariants_ok": true,
-          "gap_vs_fastest": 0.8342363819419073,
+          "gap_vs_fastest": 0.4070586670100668,
           "distinguishable_from_fastest": true,
           "indistinguishable_from": [
             "merge",
@@ -253,33 +237,51 @@
         },
         {
           "cell": "radix",
-          "work_warm_min_ns": 2112199800,
-          "work_warm_spread_ns": 195257200,
-          "spread_frac": 0.09244258047936564,
-          "converged": true,
-          "load_min_ns": 1610334600,
+          "work_warm_min_ns": 1867976000,
+          "work_warm_spread_ns": 2033184500,
+          "spread_frac": 0.23889052977750533,
+          "converged": false,
+          "load_min_ns": 1762212500,
           "threads": 1,
           "invariants_ok": true,
-          "gap_vs_fastest": 0.8849256443970799,
+          "gap_vs_fastest": 0.6264281602762805,
           "distinguishable_from_fastest": true,
           "indistinguishable_from": [
-            "merge",
+            "builtin",
             "workers"
           ]
+        },
+        {
+          "cell": "workers",
+          "work_warm_min_ns": 2020179300,
+          "work_warm_spread_ns": 181372400,
+          "spread_frac": 0.0349971033487345,
+          "converged": true,
+          "load_min_ns": 1569693500,
+          "threads": 4,
+          "invariants_ok": true,
+          "gap_vs_fastest": 0.7589500627027457,
+          "distinguishable_from_fastest": true,
+          "indistinguishable_from": [
+            "radix"
+          ]
         }
-      ]
+      ],
+      "has_distinguishable_winner": true,
+      "lead_frac": 0.254564962752314,
+      "winner": "quick"
     },
     {
       "dataset": "B",
       "mode": "soa",
       "rows": [
         {
-          "cell": "radix",
-          "work_warm_min_ns": 1384062500,
-          "work_warm_spread_ns": 291780800,
-          "spread_frac": 0.2108147572815534,
+          "cell": "merge",
+          "work_warm_min_ns": 1532895200,
+          "work_warm_spread_ns": 500890500,
+          "spread_frac": 0.15403285907896086,
           "converged": true,
-          "load_min_ns": 1823749400,
+          "load_min_ns": 1805804200,
           "threads": 1,
           "invariants_ok": true,
           "gap_vs_fastest": 0,
@@ -291,63 +293,70 @@
         },
         {
           "cell": "quick",
-          "work_warm_min_ns": 1610658100,
-          "work_warm_spread_ns": 1027640500,
-          "spread_frac": 0.6380252270795397,
+          "work_warm_min_ns": 1572950300,
+          "work_warm_spread_ns": 1132643400,
+          "spread_frac": 0.24884984240180502,
           "converged": false,
-          "load_min_ns": 2009201900,
+          "load_min_ns": 1803531500,
           "threads": 1,
           "invariants_ok": true,
-          "gap_vs_fastest": 0.16371775118536916,
+          "gap_vs_fastest": 0.026130357770054992,
           "distinguishable_from_fastest": false,
           "indistinguishable_from": [
-            "radix",
+            "merge",
             "workers"
           ]
         },
         {
           "cell": "workers",
-          "work_warm_min_ns": 1636980700,
-          "work_warm_spread_ns": 569014700,
-          "spread_frac": 0.3476001274785952,
+          "work_warm_min_ns": 1622522200,
+          "work_warm_spread_ns": 336051000,
+          "spread_frac": 0.05618312926381853,
           "converged": true,
-          "load_min_ns": 1794609000,
+          "load_min_ns": 1850345000,
           "threads": 4,
           "invariants_ok": true,
-          "gap_vs_fastest": 0.18273611198916234,
+          "gap_vs_fastest": 0.058469098213628695,
           "distinguishable_from_fastest": false,
           "indistinguishable_from": [
-            "radix",
+            "merge",
             "quick"
           ]
         },
         {
           "cell": "builtin",
-          "work_warm_min_ns": 2197791700,
-          "work_warm_spread_ns": 189636300,
-          "spread_frac": 0.08628492863996165,
+          "work_warm_min_ns": 2365771700,
+          "work_warm_spread_ns": 648466000,
+          "spread_frac": 0.14609674739730238,
           "converged": true,
-          "load_min_ns": 1813576800,
+          "load_min_ns": 1962326000,
           "threads": 1,
           "invariants_ok": true,
-          "gap_vs_fastest": 0.5879280740573493,
+          "gap_vs_fastest": 0.5433355783226407,
           "distinguishable_from_fastest": true,
-          "indistinguishable_from": []
+          "indistinguishable_from": [
+            "radix"
+          ]
         },
         {
-          "cell": "merge",
-          "work_warm_min_ns": 2764424500,
-          "work_warm_spread_ns": 951849100,
-          "spread_frac": 0.3443208884887252,
-          "converged": true,
-          "load_min_ns": 2151363300,
+          "cell": "radix",
+          "work_warm_min_ns": 2456649800,
+          "work_warm_spread_ns": 2315085400,
+          "spread_frac": 0.3400513828158152,
+          "converged": false,
+          "load_min_ns": 2048420800,
           "threads": 1,
           "invariants_ok": true,
-          "gap_vs_fastest": 0.9973263490629939,
+          "gap_vs_fastest": 0.602620844530011,
           "distinguishable_from_fastest": true,
-          "indistinguishable_from": []
+          "indistinguishable_from": [
+            "builtin"
+          ]
         }
-      ]
+      ],
+      "has_distinguishable_winner": false,
+      "lead_frac": 0.026130357770054992,
+      "winner": null
     },
     {
       "dataset": "C",
@@ -355,11 +364,11 @@
       "rows": [
         {
           "cell": "quick",
-          "work_warm_min_ns": 1360209000,
-          "work_warm_spread_ns": 136657800,
-          "spread_frac": 0.10046823686654036,
+          "work_warm_min_ns": 1620527200,
+          "work_warm_spread_ns": 490900500,
+          "spread_frac": 0.0869755449712432,
           "converged": true,
-          "load_min_ns": 2155704200,
+          "load_min_ns": 1704191700,
           "threads": 1,
           "invariants_ok": true,
           "gap_vs_fastest": 0,
@@ -367,72 +376,70 @@
           "indistinguishable_from": []
         },
         {
-          "cell": "radix",
-          "work_warm_min_ns": 2153145100,
-          "work_warm_spread_ns": 1136089900,
-          "spread_frac": 0.5276420525490827,
-          "converged": false,
-          "load_min_ns": 1808302600,
+          "cell": "merge",
+          "work_warm_min_ns": 2180012000,
+          "work_warm_spread_ns": 94127900,
+          "spread_frac": 0.017518250337164736,
+          "converged": true,
+          "load_min_ns": 1755743900,
           "threads": 1,
           "invariants_ok": true,
-          "gap_vs_fastest": 0.5829516640457459,
+          "gap_vs_fastest": 0.3452486326671962,
           "distinguishable_from_fastest": true,
           "indistinguishable_from": [
             "builtin",
-            "merge"
+            "workers"
           ]
         },
         {
           "cell": "builtin",
-          "work_warm_min_ns": 2326620600,
-          "work_warm_spread_ns": 580939400,
-          "spread_frac": 0.2496923649691746,
+          "work_warm_min_ns": 2181357700,
+          "work_warm_spread_ns": 432722900,
+          "spread_frac": 0.1424814049979781,
           "converged": true,
-          "load_min_ns": 1811937900,
+          "load_min_ns": 2000300600,
           "threads": 1,
           "invariants_ok": true,
-          "gap_vs_fastest": 0.7104875794822707,
+          "gap_vs_fastest": 0.3460790414378728,
           "distinguishable_from_fastest": true,
           "indistinguishable_from": [
-            "radix",
             "merge",
             "workers"
           ]
         },
         {
-          "cell": "merge",
-          "work_warm_min_ns": 2563164800,
-          "work_warm_spread_ns": 814977200,
-          "spread_frac": 0.3179573939217642,
+          "cell": "workers",
+          "work_warm_min_ns": 2643020700,
+          "work_warm_spread_ns": 237598700,
+          "spread_frac": 0.03061068338630042,
           "converged": true,
-          "load_min_ns": 2095268200,
-          "threads": 1,
+          "load_min_ns": 1535179400,
+          "threads": 4,
           "invariants_ok": true,
-          "gap_vs_fastest": 0.8843904135320381,
+          "gap_vs_fastest": 0.6309634913872473,
           "distinguishable_from_fastest": true,
           "indistinguishable_from": [
-            "radix",
-            "builtin",
-            "workers"
+            "merge",
+            "builtin"
           ]
         },
         {
-          "cell": "workers",
-          "work_warm_min_ns": 2788974300,
-          "work_warm_spread_ns": 99174300,
-          "spread_frac": 0.035559416951242616,
+          "cell": "radix",
+          "work_warm_min_ns": 3730994900,
+          "work_warm_spread_ns": 2836169000,
+          "spread_frac": 0.1945797272780783,
           "converged": true,
-          "load_min_ns": 1678801700,
-          "threads": 4,
+          "load_min_ns": 2133193400,
+          "threads": 1,
           "invariants_ok": true,
-          "gap_vs_fastest": 1.0504012986239615,
+          "gap_vs_fastest": 1.302334018213332,
           "distinguishable_from_fastest": true,
-          "indistinguishable_from": [
-            "builtin",
-            "merge"
-          ]
+          "indistinguishable_from": []
         }
-      ]
+      ],
+      "has_distinguishable_winner": true,
+      "lead_frac": 0.3452486326671962,
+      "winner": "quick"
     },
     {
       "dataset": "C",
@@ -440,81 +447,92 @@
       "rows": [
         {
           "cell": "radix",
-          "work_warm_min_ns": 1670802700,
-          "work_warm_spread_ns": 419576100,
-          "spread_frac": 0.2511224694573453,
+          "work_warm_min_ns": 2095581600,
+          "work_warm_spread_ns": 1232957800,
+          "spread_frac": 0.2140897418555389,
           "converged": true,
-          "load_min_ns": 1825845700,
+          "load_min_ns": 1938502800,
           "threads": 1,
           "invariants_ok": true,
           "gap_vs_fastest": 0,
           "distinguishable_from_fastest": false,
           "indistinguishable_from": [
-            "quick"
+            "quick",
+            "workers",
+            "merge"
           ]
         },
         {
           "cell": "quick",
-          "work_warm_min_ns": 1971013100,
-          "work_warm_spread_ns": 339309300,
-          "spread_frac": 0.1721496929675404,
+          "work_warm_min_ns": 2183479200,
+          "work_warm_spread_ns": 719866500,
+          "spread_frac": 0.0756445530800887,
           "converged": true,
-          "load_min_ns": 1791745500,
+          "load_min_ns": 1734034200,
           "threads": 1,
           "invariants_ok": true,
-          "gap_vs_fastest": 0.17968034167050365,
+          "gap_vs_fastest": 0.041944250703480124,
           "distinguishable_from_fastest": false,
           "indistinguishable_from": [
             "radix",
-            "workers"
+            "workers",
+            "merge"
           ]
         },
         {
           "cell": "workers",
-          "work_warm_min_ns": 2220098700,
-          "work_warm_spread_ns": 381651900,
-          "spread_frac": 0.17190762735008133,
+          "work_warm_min_ns": 2193008400,
+          "work_warm_spread_ns": 361067200,
+          "spread_frac": 0.0639923749810428,
           "converged": true,
-          "load_min_ns": 1761594500,
+          "load_min_ns": 1737572700,
           "threads": 4,
           "invariants_ok": true,
-          "gap_vs_fastest": 0.3287617382950123,
-          "distinguishable_from_fastest": true,
+          "gap_vs_fastest": 0.04649153247003123,
+          "distinguishable_from_fastest": false,
           "indistinguishable_from": [
-            "quick"
+            "radix",
+            "quick",
+            "merge"
           ]
         },
         {
           "cell": "merge",
-          "work_warm_min_ns": 3601681700,
-          "work_warm_spread_ns": 570422600,
-          "spread_frac": 0.15837673828867221,
+          "work_warm_min_ns": 2299425200,
+          "work_warm_spread_ns": 582180400,
+          "spread_frac": 0.10477339705097583,
           "converged": true,
-          "load_min_ns": 1959832400,
+          "load_min_ns": 1820874200,
           "threads": 1,
           "invariants_ok": true,
-          "gap_vs_fastest": 1.1556594922907415,
-          "distinguishable_from_fastest": true,
+          "gap_vs_fastest": 0.09727304343576981,
+          "distinguishable_from_fastest": false,
           "indistinguishable_from": [
+            "radix",
+            "quick",
+            "workers",
             "builtin"
           ]
         },
         {
           "cell": "builtin",
-          "work_warm_min_ns": 3737924000,
-          "work_warm_spread_ns": 917094700,
-          "spread_frac": 0.2453486748259194,
+          "work_warm_min_ns": 2733563900,
+          "work_warm_spread_ns": 271854900,
+          "spread_frac": 0.046905412406224485,
           "converged": true,
-          "load_min_ns": 1743541300,
+          "load_min_ns": 1778793200,
           "threads": 1,
           "invariants_ok": true,
-          "gap_vs_fastest": 1.237202513498452,
+          "gap_vs_fastest": 0.3044416404496012,
           "distinguishable_from_fastest": true,
           "indistinguishable_from": [
             "merge"
           ]
         }
-      ]
+      ],
+      "has_distinguishable_winner": false,
+      "lead_frac": 0.041944250703480124,
+      "winner": null
     }
   ],
   "failed": []
