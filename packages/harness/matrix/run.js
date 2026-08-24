@@ -113,8 +113,16 @@ for (const ds of DATASETS) {
       const ties = group.filter((o) => o !== r &&
         Math.abs(o.work_warm_min - r.work_warm_min) / Math.min(o.work_warm_min, r.work_warm_min) < FLOOR
       ).map((o) => o.cell);
+      // A within-run spread far larger than the floor means work_warm_min is
+      // a lucky sample rather than a converged minimum. The floor is a
+      // between-process statistic and says nothing about this. Observed at
+      // tiny: a 61.9ms minimum with a 43.1ms spread -- 70% -- sitting in a
+      // table beside a 21.9% floor as though both were equally solid.
+      const spreadFrac = r.work_warm_spread == null ? null : r.work_warm_spread / r.work_warm_min;
+      const converged = spreadFrac == null ? null : spreadFrac <= 2 * FLOOR;
       return {
         cell: r.cell, work_warm_min_ns: r.work_warm_min, work_warm_spread_ns: r.work_warm_spread,
+        spread_frac: spreadFrac, converged,
         load_min_ns: r.load_min, threads: r.threads, invariants_ok: r.invariants_ok,
         gap_vs_fastest: gap,
         distinguishable_from_fastest: gap > FLOOR,
@@ -129,7 +137,8 @@ for (const ds of DATASETS) {
       const verdict = r === rows[0] ? 'fastest'
         : r.distinguishable_from_fastest ? `slower than ${fastest.cell}`
         : `indistinguishable from ${fastest.cell}`;
-      const inv = r.invariants_ok ? '' : '  [INVARIANT FAILURE]';
+      const inv = (r.invariants_ok ? '' : '  [INVARIANT FAILURE]')
+        + (r.converged === false ? `  [UNCONVERGED spread ${(r.spread_frac * 100).toFixed(0)}%]` : '');
       console.log(`  ${r.cell.padEnd(10)}${ms(r.work_warm_min_ns).padStart(7)}ms${(r.work_warm_spread_ns == null ? 'n/a' : ms(r.work_warm_spread_ns)).padStart(7)}ms${ms(r.load_min_ns).padStart(7)}ms${(r.gap_vs_fastest * 100).toFixed(1).padStart(9)}%   ${verdict}${inv}`);
     }
     console.log('');

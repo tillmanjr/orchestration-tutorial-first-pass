@@ -161,7 +161,7 @@ no, it is not an exit criterion.
 | **M2** | Walking skeleton green | **met** | `builtin` cell sorts A/B/C at tiny in both load modes; I1–I3 pass under independent oracle verification; manifests emitted with phases, cold/warm and RSS |
 | **M3** | Determinism across platforms | **met** | `results/determinism/tier-tiny.json`; byte-identical on linux-x64, win32-x64, darwin-arm64. Re-check with `node packages/generator/verify-determinism.js` |
 | **M4** | Contracts frozen; boundary written | **met** | `DATASET-SPEC` and `MEASUREMENT-CONTRACT` frozen at v1.2; `BOUNDARY.md` v1. Rollback baseline: git tag `pre-freeze` |
-| **M5** | First fan-out — the JS row | **partial** | five cells pass all ten conformance cases, byte-identical in both load modes, adversarially verified. But every timing came from an inadmissible host, so the *measurement* half is unmet. Blocked on: conformance defects (dataset/cwd/`soa`), a `noise-probe`, and a benchmark run on a declared host |
+| **M5** | First fan-out — the JS row | **partial** | five cells, 12 conformance cases, adversarially verified. Both hosts declared and floor-measured (11.5% / 21.9%); matrices run and committed. Outstanding: `mid`-tier matrix, where `work` should overtake `load`, plus extra repeats for the cells flagged UNCONVERGED |
 | **M6** | Second runtime — the Rust row | not started | |
 | **M7** | Zip and merge | not started | |
 | **M8** | Synthesis, gated | not started | |

@@ -1,0 +1,473 @@
+{
+  "contract": 1,
+  "kind": "matrix",
+  "host": "win32-x64",
+  "cpu": "13th Gen Intel(R) Core(TM) i9-13900F",
+  "cores_logical": 32,
+  "runtime": "node",
+  "runtime_version": "24.6.0",
+  "tier": "tiny",
+  "repeat": 5,
+  "floor": {
+    "value": 0.21856329688988033,
+    "source": "noise-probe.node.win32-x64.json",
+    "admissible": true
+  },
+  "scope": "THIS HOST ONLY. Results are not comparable with another host: a cross-host table is confounded by OS and runtime version as well as hardware.",
+  "report": [
+    {
+      "dataset": "A",
+      "mode": "aos",
+      "rows": [
+        {
+          "cell": "quick",
+          "work_warm_min_ns": 36341800,
+          "work_warm_spread_ns": 4426900,
+          "load_min_ns": 57048200,
+          "threads": 1,
+          "invariants_ok": true,
+          "gap_vs_fastest": 0,
+          "distinguishable_from_fastest": false,
+          "indistinguishable_from": [
+            "merge"
+          ]
+        },
+        {
+          "cell": "merge",
+          "work_warm_min_ns": 43609400,
+          "work_warm_spread_ns": 18433100,
+          "load_min_ns": 54114400,
+          "threads": 1,
+          "invariants_ok": true,
+          "gap_vs_fastest": 0.19997908744200893,
+          "distinguishable_from_fastest": false,
+          "indistinguishable_from": [
+            "quick",
+            "builtin",
+            "radix"
+          ]
+        },
+        {
+          "cell": "builtin",
+          "work_warm_min_ns": 44390100,
+          "work_warm_spread_ns": 22956700,
+          "load_min_ns": 54635800,
+          "threads": 1,
+          "invariants_ok": true,
+          "gap_vs_fastest": 0.2214612374731026,
+          "distinguishable_from_fastest": true,
+          "indistinguishable_from": [
+            "merge",
+            "radix"
+          ]
+        },
+        {
+          "cell": "radix",
+          "work_warm_min_ns": 50900100,
+          "work_warm_spread_ns": 4750600,
+          "load_min_ns": 54329500,
+          "threads": 1,
+          "invariants_ok": true,
+          "gap_vs_fastest": 0.4005938065808518,
+          "distinguishable_from_fastest": true,
+          "indistinguishable_from": [
+            "merge",
+            "builtin",
+            "workers"
+          ]
+        },
+        {
+          "cell": "workers",
+          "work_warm_min_ns": 61852900,
+          "work_warm_spread_ns": 43144500,
+          "load_min_ns": 59476000,
+          "threads": 4,
+          "invariants_ok": true,
+          "gap_vs_fastest": 0.7019767870606299,
+          "distinguishable_from_fastest": true,
+          "indistinguishable_from": [
+            "radix"
+          ]
+        }
+      ]
+    },
+    {
+      "dataset": "A",
+      "mode": "soa",
+      "rows": [
+        {
+          "cell": "radix",
+          "work_warm_min_ns": 31663100,
+          "work_warm_spread_ns": 10257900,
+          "load_min_ns": 66494600,
+          "threads": 1,
+          "invariants_ok": true,
+          "gap_vs_fastest": 0,
+          "distinguishable_from_fastest": false,
+          "indistinguishable_from": [
+            "quick"
+          ]
+        },
+        {
+          "cell": "quick",
+          "work_warm_min_ns": 34425700,
+          "work_warm_spread_ns": 12660700,
+          "load_min_ns": 57428000,
+          "threads": 1,
+          "invariants_ok": true,
+          "gap_vs_fastest": 0.08724982708578756,
+          "distinguishable_from_fastest": false,
+          "indistinguishable_from": [
+            "radix",
+            "workers"
+          ]
+        },
+        {
+          "cell": "workers",
+          "work_warm_min_ns": 40220300,
+          "work_warm_spread_ns": 34240700,
+          "load_min_ns": 59091900,
+          "threads": 4,
+          "invariants_ok": true,
+          "gap_vs_fastest": 0.2702578079846888,
+          "distinguishable_from_fastest": true,
+          "indistinguishable_from": [
+            "quick",
+            "merge"
+          ]
+        },
+        {
+          "cell": "merge",
+          "work_warm_min_ns": 45224700,
+          "work_warm_spread_ns": 24821000,
+          "load_min_ns": 55922600,
+          "threads": 1,
+          "invariants_ok": true,
+          "gap_vs_fastest": 0.42830929378361565,
+          "distinguishable_from_fastest": true,
+          "indistinguishable_from": [
+            "workers",
+            "builtin"
+          ]
+        },
+        {
+          "cell": "builtin",
+          "work_warm_min_ns": 53769400,
+          "work_warm_spread_ns": 57635500,
+          "load_min_ns": 74651100,
+          "threads": 1,
+          "invariants_ok": true,
+          "gap_vs_fastest": 0.6981723204613572,
+          "distinguishable_from_fastest": true,
+          "indistinguishable_from": [
+            "merge"
+          ]
+        }
+      ]
+    },
+    {
+      "dataset": "B",
+      "mode": "aos",
+      "rows": [
+        {
+          "cell": "quick",
+          "work_warm_min_ns": 23299900,
+          "work_warm_spread_ns": 2611700,
+          "load_min_ns": 62713700,
+          "threads": 1,
+          "invariants_ok": true,
+          "gap_vs_fastest": 0,
+          "distinguishable_from_fastest": false,
+          "indistinguishable_from": [
+            "merge"
+          ]
+        },
+        {
+          "cell": "merge",
+          "work_warm_min_ns": 27019800,
+          "work_warm_spread_ns": 5589200,
+          "load_min_ns": 62079500,
+          "threads": 1,
+          "invariants_ok": true,
+          "gap_vs_fastest": 0.15965304572122627,
+          "distinguishable_from_fastest": false,
+          "indistinguishable_from": [
+            "quick",
+            "radix",
+            "builtin"
+          ]
+        },
+        {
+          "cell": "radix",
+          "work_warm_min_ns": 29556600,
+          "work_warm_spread_ns": 7041900,
+          "load_min_ns": 59256300,
+          "threads": 1,
+          "invariants_ok": true,
+          "gap_vs_fastest": 0.26852904948089906,
+          "distinguishable_from_fastest": true,
+          "indistinguishable_from": [
+            "merge",
+            "builtin",
+            "workers"
+          ]
+        },
+        {
+          "cell": "builtin",
+          "work_warm_min_ns": 31573100,
+          "work_warm_spread_ns": 2309300,
+          "load_min_ns": 61252600,
+          "threads": 1,
+          "invariants_ok": true,
+          "gap_vs_fastest": 0.35507448529822017,
+          "distinguishable_from_fastest": true,
+          "indistinguishable_from": [
+            "merge",
+            "radix",
+            "workers"
+          ]
+        },
+        {
+          "cell": "workers",
+          "work_warm_min_ns": 35209400,
+          "work_warm_spread_ns": 10374900,
+          "load_min_ns": 62086700,
+          "threads": 4,
+          "invariants_ok": true,
+          "gap_vs_fastest": 0.5111395327876944,
+          "distinguishable_from_fastest": true,
+          "indistinguishable_from": [
+            "radix",
+            "builtin"
+          ]
+        }
+      ]
+    },
+    {
+      "dataset": "B",
+      "mode": "soa",
+      "rows": [
+        {
+          "cell": "radix",
+          "work_warm_min_ns": 20590900,
+          "work_warm_spread_ns": 10760500,
+          "load_min_ns": 70766600,
+          "threads": 1,
+          "invariants_ok": true,
+          "gap_vs_fastest": 0,
+          "distinguishable_from_fastest": false,
+          "indistinguishable_from": [
+            "quick"
+          ]
+        },
+        {
+          "cell": "quick",
+          "work_warm_min_ns": 24036200,
+          "work_warm_spread_ns": 8229600,
+          "load_min_ns": 57308300,
+          "threads": 1,
+          "invariants_ok": true,
+          "gap_vs_fastest": 0.16732148667615307,
+          "distinguishable_from_fastest": false,
+          "indistinguishable_from": [
+            "radix",
+            "merge"
+          ]
+        },
+        {
+          "cell": "merge",
+          "work_warm_min_ns": 28609200,
+          "work_warm_spread_ns": 6108100,
+          "load_min_ns": 57919200,
+          "threads": 1,
+          "invariants_ok": true,
+          "gap_vs_fastest": 0.38940988494917655,
+          "distinguishable_from_fastest": true,
+          "indistinguishable_from": [
+            "quick",
+            "workers",
+            "builtin"
+          ]
+        },
+        {
+          "cell": "workers",
+          "work_warm_min_ns": 29828300,
+          "work_warm_spread_ns": 10298600,
+          "load_min_ns": 60979400,
+          "threads": 4,
+          "invariants_ok": true,
+          "gap_vs_fastest": 0.44861565060293623,
+          "distinguishable_from_fastest": true,
+          "indistinguishable_from": [
+            "merge",
+            "builtin"
+          ]
+        },
+        {
+          "cell": "builtin",
+          "work_warm_min_ns": 34108400,
+          "work_warm_spread_ns": 4958100,
+          "load_min_ns": 61700200,
+          "threads": 1,
+          "invariants_ok": true,
+          "gap_vs_fastest": 0.6564793185339155,
+          "distinguishable_from_fastest": true,
+          "indistinguishable_from": [
+            "merge",
+            "workers"
+          ]
+        }
+      ]
+    },
+    {
+      "dataset": "C",
+      "mode": "aos",
+      "rows": [
+        {
+          "cell": "quick",
+          "work_warm_min_ns": 31088300,
+          "work_warm_spread_ns": 8744400,
+          "load_min_ns": 68651900,
+          "threads": 1,
+          "invariants_ok": true,
+          "gap_vs_fastest": 0,
+          "distinguishable_from_fastest": false,
+          "indistinguishable_from": []
+        },
+        {
+          "cell": "merge",
+          "work_warm_min_ns": 39801600,
+          "work_warm_spread_ns": 16293200,
+          "load_min_ns": 65882900,
+          "threads": 1,
+          "invariants_ok": true,
+          "gap_vs_fastest": 0.28027585940691513,
+          "distinguishable_from_fastest": true,
+          "indistinguishable_from": [
+            "radix",
+            "builtin"
+          ]
+        },
+        {
+          "cell": "radix",
+          "work_warm_min_ns": 41996400,
+          "work_warm_spread_ns": 7309500,
+          "load_min_ns": 58418900,
+          "threads": 1,
+          "invariants_ok": true,
+          "gap_vs_fastest": 0.3508747663912147,
+          "distinguishable_from_fastest": true,
+          "indistinguishable_from": [
+            "merge",
+            "builtin",
+            "workers"
+          ]
+        },
+        {
+          "cell": "builtin",
+          "work_warm_min_ns": 42414900,
+          "work_warm_spread_ns": 13298900,
+          "load_min_ns": 57981600,
+          "threads": 1,
+          "invariants_ok": true,
+          "gap_vs_fastest": 0.36433642238398367,
+          "distinguishable_from_fastest": true,
+          "indistinguishable_from": [
+            "merge",
+            "radix",
+            "workers"
+          ]
+        },
+        {
+          "cell": "workers",
+          "work_warm_min_ns": 50726200,
+          "work_warm_spread_ns": 20531300,
+          "load_min_ns": 59810600,
+          "threads": 4,
+          "invariants_ok": true,
+          "gap_vs_fastest": 0.6316813720917516,
+          "distinguishable_from_fastest": true,
+          "indistinguishable_from": [
+            "radix",
+            "builtin"
+          ]
+        }
+      ]
+    },
+    {
+      "dataset": "C",
+      "mode": "soa",
+      "rows": [
+        {
+          "cell": "radix",
+          "work_warm_min_ns": 28190700,
+          "work_warm_spread_ns": 10527200,
+          "load_min_ns": 69157900,
+          "threads": 1,
+          "invariants_ok": true,
+          "gap_vs_fastest": 0,
+          "distinguishable_from_fastest": false,
+          "indistinguishable_from": [
+            "quick"
+          ]
+        },
+        {
+          "cell": "quick",
+          "work_warm_min_ns": 32292200,
+          "work_warm_spread_ns": 16685000,
+          "load_min_ns": 55636800,
+          "threads": 1,
+          "invariants_ok": true,
+          "gap_vs_fastest": 0.1454912435661406,
+          "distinguishable_from_fastest": false,
+          "indistinguishable_from": [
+            "radix"
+          ]
+        },
+        {
+          "cell": "merge",
+          "work_warm_min_ns": 41409300,
+          "work_warm_spread_ns": 22038000,
+          "load_min_ns": 56268700,
+          "threads": 1,
+          "invariants_ok": true,
+          "gap_vs_fastest": 0.4688993178601454,
+          "distinguishable_from_fastest": true,
+          "indistinguishable_from": [
+            "workers",
+            "builtin"
+          ]
+        },
+        {
+          "cell": "workers",
+          "work_warm_min_ns": 41803000,
+          "work_warm_spread_ns": 28098200,
+          "load_min_ns": 56888400,
+          "threads": 4,
+          "invariants_ok": true,
+          "gap_vs_fastest": 0.48286491644407553,
+          "distinguishable_from_fastest": true,
+          "indistinguishable_from": [
+            "merge",
+            "builtin"
+          ]
+        },
+        {
+          "cell": "builtin",
+          "work_warm_min_ns": 43567200,
+          "work_warm_spread_ns": 19101700,
+          "load_min_ns": 58612900,
+          "threads": 1,
+          "invariants_ok": true,
+          "gap_vs_fastest": 0.5454458385212144,
+          "distinguishable_from_fastest": true,
+          "indistinguishable_from": [
+            "merge",
+            "workers"
+          ]
+        }
+      ]
+    }
+  ],
+  "failed": []
+}

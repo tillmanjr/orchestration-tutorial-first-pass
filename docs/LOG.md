@@ -878,3 +878,98 @@ The recursion is real and worth naming: **we measured the noise, and have not
 measured the noise in the noise measurement.** At some point that terminates
 in judgement rather than in data, and the useful discipline is to say where
 you stopped rather than to pretend the floor is exact.
+
+## The first matrix — five cells, two architectures, and an inversion
+
+Five cells × three datasets × two load modes, `--repeat 5`, run independently
+on each host and judged against that host's own measured floor. Tiny tier.
+
+### The winner depends on the architecture
+
+|  | win32-x64 (floor 21.9%) | darwin-arm64 (floor 11.5%) |
+|---|---|---|
+| `aos` — A / B / C | `quick`, `quick`, `quick` | `quick`, `quick`, `quick` |
+| `soa` — A / B / C | **`radix`, `radix`, `radix`** | `workers`, `quick`, `quick` |
+
+`quick` wins every `aos` scenario on both machines. That is the only result
+that transfers.
+
+**`radix` inverts completely.** It wins all three `soa` scenarios on Windows.
+On the Mac it finishes last or second-to-last in all six — 68.4%, 107.0% and
+106.9% behind in `aos`; 65.1%, 52.2% and 44.0% behind in `soa`. Every one of
+those gaps is far outside both floors.
+
+The same algorithm is the best available choice on one architecture and the
+worst on the other. **This is the result the two-architecture design was for**,
+and it would have been invisible in a single-machine study or in a
+cross-machine table, which §5c prohibits precisely because it would have
+averaged this away.
+
+Cause not asserted. Testable hypothesis: radix's histogram-and-scatter pass is
+bandwidth- and cache-behaviour bound rather than compute bound, so it is
+sensitive to cache hierarchy and allocator behaviour in a way comparison sorts
+are not. Vary the digit width and see whether the Mac's penalty tracks it.
+
+### FALSIFIED — the control was predicted to win and never does
+
+The header comment in `builtin.js` states the control *"is expected to WIN a
+good number of the single-threaded comparison-sort cells"*, reasoning that
+`Array.prototype.sort` is TimSort implemented in C++ while every rival is
+hand-written JavaScript.
+
+It never wins. Bottom half in all twelve scenarios; last in three of Windows'
+six.
+
+The native sort's advantage is consumed by the per-comparison callback into
+JS. A hand-written sort that stays inside the JIT beats native code that must
+call out on every comparison. **The boundary cost dominates the
+implementation quality** — which is the same lesson as the process boundary in
+`BOUNDARY.md`, appearing one level down and unprompted.
+
+The prediction was written into the code as a confident aside. It survived
+five cells and two architectures before anything tested it.
+
+### The floors did exactly what they were built to do
+
+Scenarios where at least one cell is indistinguishable from the winner:
+
+- **win32-x64, 21.9% floor: 5 of 6**
+- **darwin-arm64, 11.5% floor: 1 of 6**
+
+On Windows, `quick` and `merge` cannot be told apart on A or B in `aos`. On
+the Mac they can. *"On this architecture these two scenarios are the same"* is
+a real answer for someone choosing on that architecture, and it is only
+available because the floor was measured per host rather than assumed.
+
+### CAVEAT — some minima have not converged, and the table did not say so
+
+Windows A/`aos` `workers`: minimum 61.9 ms, within-run spread **43.1 ms**.
+That is 70% of the value, sitting in a table beside a 21.9% floor as though
+both figures were equally solid. `builtin` A/`soa`: 57.6 ms spread on a 53.8 ms
+minimum.
+
+The floor is a *between-process* statistic and says nothing about whether an
+individual minimum settled. `workers` is the worst offender on both hosts,
+which is what a cell with per-run thread scheduling should look like.
+
+The runner now flags any row whose spread exceeds twice the floor as
+`UNCONVERGED`. The fix is more repeats for those cells specifically — not a
+higher floor, which would discard good measurements to accommodate bad ones.
+
+### CAVEAT — every difference above sits inside a pipeline where parsing wins
+
+`load` against `work`, across the matrix:
+
+    darwin-arm64   load 37-50 ms    work 15-48 ms
+    win32-x64      load 54-75 ms    work 20-62 ms
+
+**Parsing costs more than sorting in nearly every cell.** For a real workload,
+the choice of sort matters considerably less than these tables suggest, and a
+tutorial that presented the rankings without this would be technically
+accurate and practically misleading.
+
+This is also the argument for `mid`: at 25× the records, `work` should grow
+past `load` and the algorithmic differences stop being a minority of the
+runtime. Whether the rankings survive that is the next question, and it is a
+real one — a radix sort's advantage grows with n while its cache behaviour
+worsens.

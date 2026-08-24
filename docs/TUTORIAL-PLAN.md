@@ -190,7 +190,26 @@ result rather than into N summaries.
   Attempts used were 1, 2, 2 against a budget of 5. The run that needed it did
   not happen; the limiter cost one paragraph.
 
-**Status: in progress (M5). Correctness half done, measurement half not.**
+**The result, and it justifies the whole two-architecture design:**
+
+`quick` wins every `aos` scenario on both machines. `radix` wins all three
+`soa` scenarios on Windows and finishes last or near-last in all six on the
+Mac. **The same algorithm is the best choice on one architecture and the worst
+on the other** — a finding invisible to a single-machine study, and one that a
+cross-machine table would have averaged away.
+
+Two more, both falsifications:
+
+- *The control was predicted to win and never does.* `Array.prototype.sort` is
+  native TimSort; every rival is hand-written JS. It is bottom-half in all
+  twelve scenarios. The per-comparison callback into JS consumes the native
+  advantage — the boundary cost dominates the implementation quality, which is
+  `BOUNDARY.md`'s lesson appearing one level down and unprompted.
+- *Parsing costs more than sorting.* `load` exceeds `work` in nearly every
+  cell. Publishing the rankings without this would be accurate and misleading.
+
+**Status: in progress (M5). Correctness half done; measurement half has its
+first real result at tiny, with `mid` outstanding.**
 
 ### T8 · Adding a runtime costs a row, not a project
 **Worked example.** The Rust row, then C++. Tests the claim that a correct
