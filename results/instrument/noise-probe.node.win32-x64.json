@@ -10,37 +10,37 @@
     "cores_logical": 32,
     "ram_bytes": 68424019968
   },
-  "benchmark_admissible": false,
+  "benchmark_admissible": true,
   "tier": "tiny",
   "dataset": "C",
   "invocations": 10,
   "repeat_per_invocation": 5,
   "within_process": {
     "note": "spread across warm repeats inside one invocation, as a fraction of that invocation's warm minimum",
-    "median_frac": 0.3055082683352665,
-    "min_frac": 0.133565819983673,
-    "max_frac": 0.631294674556213
+    "median_frac": 0.2646977206681518,
+    "min_frac": 0.024872862383972308,
+    "max_frac": 0.42771745531576405
   },
   "between_process": {
     "note": "movement of work_warm_min itself across separate invocations -- the variance a cell-vs-cell comparison is actually exposed to",
-    "min_ns": 41296100,
-    "median_ns": 46742700,
-    "max_ns": 52628700,
-    "spread_frac": 0.274423008468112
+    "min_ns": 50297100,
+    "median_ns": 58618700,
+    "max_ns": 61290200,
+    "spread_frac": 0.21856329688988033
   },
   "between_process_cold": {
-    "min_ns": 43762700,
-    "max_ns": 57585600,
-    "spread_frac": 0.31586031026422046
+    "min_ns": 57658800,
+    "max_ns": 76284400,
+    "spread_frac": 0.3230313499413793
   },
   "between_process_load": {
-    "min_ns": 54647500,
-    "max_ns": 67078300,
-    "spread_frac": 0.22747243698247863
+    "min_ns": 65753500,
+    "max_ns": 81351300,
+    "spread_frac": 0.23721626985635746
   },
-  "resolution_floor_frac": 0.274423008468112,
-  "rule": "A difference between two cells is reportable only if it exceeds resolution_floor_frac of the smaller figure. Below that it is not a difference.",
+  "resolution_floor_frac": 0.21856329688988033,
   "floor_source": "between_process.spread_frac -- movement of work_warm_min, the statistic comparisons actually use",
   "within_process_converged": true,
-  "recomputed": true
+  "within_process_note": "warm repeats are consistent enough that work_warm_min is a converged figure",
+  "rule": "A difference between two cells is reportable only if it exceeds resolution_floor_frac of the smaller figure. Below that it is not a difference."
 }
